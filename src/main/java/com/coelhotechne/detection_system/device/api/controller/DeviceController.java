@@ -21,19 +21,21 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Device")
 public class DeviceController {
+
     private final DeviceService deviceService;
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
+
+    @PreAuthorize(DeviceAccess.READ)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<DeviceResponse>> findDeviceList(){
         return ResponseEntity.status(HttpStatus.OK).body(deviceService.findDeviceList());
     }
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
+    @PreAuthorize(DeviceAccess.READ)
     @GetMapping(value = "/{id}"
             ,produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResponse>findDeviceId(@PathVariable UUID id){
         return ResponseEntity.status(HttpStatus.OK).body(deviceService.findDeviceId(id));
     }
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
+    @PreAuthorize(DeviceAccess.EDIT)
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE
             ,consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResponse> createDevice(@Valid @RequestBody DeviceRequest deviceRequest){
@@ -41,14 +43,15 @@ public class DeviceController {
         URI location = URI.create("/device/"+response.uuid());
         return ResponseEntity.created(location).body(response);
     }
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
+    @PreAuthorize(DeviceAccess.EDIT)
     @PutMapping(value = "/{id}"
             ,produces = MediaType.APPLICATION_JSON_VALUE
             ,consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResponse> updateDevice(@PathVariable UUID id,@Valid @RequestBody DeviceRequest deviceRequest){
         return ResponseEntity.status(HttpStatus.OK).body(deviceService.updateDevice(id,deviceRequest));
     }
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
+
+    @PreAuthorize(DeviceAccess.ONLY_ADM)
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<DeviceResponse> deleteDevice(@PathVariable UUID id){
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(deviceService.deleteDevice(id));
