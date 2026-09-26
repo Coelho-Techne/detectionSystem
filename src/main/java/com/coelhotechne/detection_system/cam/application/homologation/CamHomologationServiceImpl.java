@@ -1,4 +1,4 @@
-package com.coelhotechne.detection_system.cam.application;
+package com.coelhotechne.detection_system.cam.application.homologation;
 
 import com.coelhotechne.detection_system.cam.domain.base.BaseCam;
 import com.coelhotechne.detection_system.cam.domain.connectioncam.CamConnectionProfile;
