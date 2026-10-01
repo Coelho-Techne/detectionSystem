@@ -53,7 +53,7 @@ public class AuthController {
                 .orElseThrow(() -> new ErrorResponseException(HttpStatus.UNAUTHORIZED));
 
 
-        String token = jwtTokenProvider.generateToken(email, role.toString());
+        String token = jwtTokenProvider.generateToken(email, role);
         return ResponseEntity.status(HttpStatus.OK).body(LoginResponse.bearer(token, email, role.toString()));
     }
 }
