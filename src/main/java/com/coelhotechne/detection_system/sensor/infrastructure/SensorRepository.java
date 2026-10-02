@@ -2,6 +2,7 @@ package com.coelhotechne.detection_system.sensor.infrastructure;
 
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
+import com.coelhotechne.detection_system.sensor.domain.homologation.enums.SensorHomologationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -36,4 +37,12 @@ public interface SensorRepository extends JpaRepository<Sensor, UUID> {
             """)
     List<Sensor> findStaleSensors(@Param("threshold") Instant threshold,
                                   @Param("disconnected") SensorStatus disconnected);
+
+    @Query("""
+        select s.uuid from Sensor s
+        where s.homologation.status = :status
+          and s.homologation.testRequestedAt < :threshold
+        """)
+    List<UUID> findOverdueSelfTestIds(@Param("status") SensorHomologationStatus status,
+                                      @Param("threshold") Instant threshold);
 }
