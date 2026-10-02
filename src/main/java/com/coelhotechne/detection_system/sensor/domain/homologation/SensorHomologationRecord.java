@@ -104,4 +104,5 @@ public class SensorHomologationRecord {
         return value == null || value.length() <= max ? value : value.substring(0, max);
     }
 
+
 }
