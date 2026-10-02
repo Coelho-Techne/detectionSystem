@@ -4,6 +4,7 @@ import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
+import com.coelhotechne.detection_system.sensor.domain.homologation.SensorHomologationRecord;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorTelemetryPayload;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
 import com.coelhotechne.detection_system.zone.domain.Zone;
@@ -90,10 +91,22 @@ public class Sensor extends BaseEntity {
     })
     @EqualsAndHashCode.Exclude
     private PowerSupply powerSupply;
+    @Embedded
+    @JsonIgnore
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    private SensorHomologationRecord homologation = new SensorHomologationRecord();
     @JsonIgnore
     @Column(name = "access_key", unique = true, length = 64)
     private String accessKey;
 
+    //:::::::::::::::::::::::: GETTERS ::::::::::::::::::::::::
+    public SensorHomologationRecord getHomologation(){
+        if (homologation==null){
+            homologation=new SensorHomologationRecord();
+        }
+        return homologation;
+    }
     @PrePersist
     @PreUpdate
     private void validateInvariants(){
