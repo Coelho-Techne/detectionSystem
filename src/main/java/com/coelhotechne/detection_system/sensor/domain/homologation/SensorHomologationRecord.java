@@ -39,7 +39,7 @@ public class SensorHomologationRecord {
     private Instant decidedAt;
     @Column(name = "homologation_test_output", length = OUTPUT_MAX)
     private String testOutput;
-    @Column(name = "homologation_rejection_reason")
+    @Column(name = "homologation_rejection_reason",length = REASON_MAX)
     private String rejectionReason;
 
     public void startTest(UUID requestId, Instant now){
@@ -64,7 +64,7 @@ public class SensorHomologationRecord {
         }else {
             status=SensorHomologationStatus.TEST_FAILED;
             testFailure=outcome.failure();
-            testOutput=truncate(outcome.detail(),REASON_MAX);
+            testFailureDetail=truncate(outcome.detail(),REASON_MAX);
         }
         return true;
     }
@@ -97,7 +97,7 @@ public class SensorHomologationRecord {
 
     private void requireStatus(boolean allowed, String action) {
         if (!allowed) {
-            throw new IllegalStateException("It's not possible " + action + " with homologation in " + status);
+            throw new IllegalStateException("Cannot " + action + " while homologation status is " + status);
         }
     }
     private static String truncate(String value, int max) {
