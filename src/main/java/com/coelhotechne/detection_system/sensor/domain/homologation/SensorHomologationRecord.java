@@ -95,6 +95,19 @@ public class SensorHomologationRecord {
         rejectionReason=truncate(reason,REASON_MAX);
     }
 
+    public boolean abortTest(UUID requestId) {
+        if (status != SensorHomologationStatus.AWAITING_RESPONSE
+                || requestId == null || !requestId.equals(pendingRequestId)) {
+            return false;
+        }
+        status = SensorHomologationStatus.PENDING_TEST;
+        pendingRequestId = null;
+        testRequestedAt = null;
+        return true;
+    }
+
+    //criar uma classe de loop de test por tempo determinado pelo usuario
+
     private void requireStatus(boolean allowed, String action) {
         if (!allowed) {
             throw new IllegalStateException("Cannot " + action + " while homologation status is " + status);
