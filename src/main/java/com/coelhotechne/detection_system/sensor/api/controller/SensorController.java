@@ -46,7 +46,7 @@ public class SensorController {
         return ResponseEntity.ok().eTag(etagOf(sensor)).body(sensor);
     }
 
-    @PreAuthorize(SensorAccess.WRITE_A_T_H)
+    @PreAuthorize(SensorAccess.WRITE)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SensorResponse> createSensor(@Valid @RequestBody SensorRequest sensorRequest) {
         SensorResponse created = service.createSensor(sensorRequest);
@@ -54,7 +54,7 @@ public class SensorController {
     }
 
     /** If-Match sem {@code required = false}: o 428 vem do service quando o header falta. */
-    @PreAuthorize(SensorAccess.WRITE_A_T_H)
+    @PreAuthorize(SensorAccess.WRITE)
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SensorResponse> replaceSensor(
             @PathVariable UUID id,
@@ -69,7 +69,7 @@ public class SensorController {
      * Consome {@code application/json}, não {@code application/merge-patch+json}: a semântica
      * implementada é "nulo = não altera", enquanto o RFC 7396 define nulo como remoção.
      */
-    @PreAuthorize(SensorAccess.WRITE_A_T_H)
+    @PreAuthorize(SensorAccess.WRITE)
     @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SensorResponse> patchSensor(
             @PathVariable UUID id,
@@ -81,26 +81,26 @@ public class SensorController {
     }
 
     /** Transição de estado é operação, não campo de patch. */
-    @PreAuthorize(SensorAccess.WRITE_A_T_H)
+    @PreAuthorize(SensorAccess.WRITE)
     @PostMapping("/{id}/maintenance")
     public ResponseEntity<SensorResponse> requestMaintenance(@PathVariable UUID id) {
         return ResponseEntity.ok(service.requestMaintenance(id));
     }
 
-    @PreAuthorize(SensorAccess.WRITE_A_T_H)
+    @PreAuthorize(SensorAccess.WRITE)
     @DeleteMapping("/{id}/maintenance")
     public ResponseEntity<SensorResponse> clearMaintenance(@PathVariable UUID id) {
         return ResponseEntity.ok(service.clearMaintenance(id));
     }
 
-    @PreAuthorize(SensorAccess.ONLY_ADM)
+    @PreAuthorize(SensorAccess.DELETE)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSensor(@PathVariable UUID id) {
         service.deleteSensor(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize(SensorAccess.WRITE_A_T_H)
+    @PreAuthorize(SensorAccess.WRITE)
     @PostMapping("/{id}/commands/{command}")
     public ResponseEntity<Void> sendCommand(@PathVariable UUID id,
                                             @PathVariable SensorCommand command) {
