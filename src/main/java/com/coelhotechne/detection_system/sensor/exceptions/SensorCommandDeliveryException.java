@@ -12,9 +12,11 @@ public class SensorCommandDeliveryException extends ErrorResponseException {
     private static final URI TYPE = URI
             .create("https://coelhotechne.com/errors/sensor/command-delivery-failed");
     private static final String RETRY_AFTER_SECONDS = "5";
+    private final UUID sensorId;
     public SensorCommandDeliveryException(UUID sensorId, Throwable cause) {
         super(HttpStatus.SERVICE_UNAVAILABLE,buildProblemDetail(sensorId),cause);
         getHeaders().set(HttpHeaders.RETRY_AFTER,RETRY_AFTER_SECONDS);
+        this.sensorId=sensorId;
     }
 
     private static ProblemDetail buildProblemDetail(UUID sensorId){
@@ -25,5 +27,9 @@ public class SensorCommandDeliveryException extends ErrorResponseException {
         pd.setType(TYPE);
         pd.setProperty("sensorId", sensorId);
         return pd;
+    }
+
+    public UUID getSensorId(){
+        return sensorId;
     }
 }
