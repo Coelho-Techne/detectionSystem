@@ -5,6 +5,7 @@ import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.homologation.SensorHomologationRecord;
+import com.coelhotechne.detection_system.sensor.domain.homologation.enums.SensorHomologationStatus;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorTelemetryPayload;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
 import com.coelhotechne.detection_system.zone.domain.Zone;
@@ -36,7 +37,9 @@ import java.util.regex.Pattern;
         name = "uk_sensor_name_zone", columnNames = {"name", "zone_id"}),
         indexes = {
                 @Index(name = "idx_sensor_zone", columnList = "zone_id"),
-                @Index(name = "idx_sensor_status", columnList = "sensor_status")
+                @Index(name = "idx_sensor_status", columnList = "sensor_status"),
+                @Index(name = "idx_sensor_homologation",
+                        columnList = "homologation_status, homologation_test_requested_at")
         }
 )
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
@@ -106,6 +109,10 @@ public class Sensor extends BaseEntity {
             homologation=new SensorHomologationRecord();
         }
         return homologation;
+    }
+
+    public boolean hasApprovedHomologation() {
+        return getHomologation().getStatus() == SensorHomologationStatus.APPROVED;
     }
     @PrePersist
     @PreUpdate
