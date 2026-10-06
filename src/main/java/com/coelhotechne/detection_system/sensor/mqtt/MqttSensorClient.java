@@ -31,6 +31,10 @@ public class MqttSensorClient implements MqttCallbackExtended{
     private final SensorEventHandler eventHandler;
     private final TaskScheduler scheduler;
 
+    private volatile boolean shuttingDown;
+    private volatile boolean subscriptionHealthy;
+    private volatile long lastMessageAtMillis;
+
     @EventListener(ApplicationReadyEvent.class)
     public void start(){
         client.setCallback(this);
@@ -91,6 +95,14 @@ public class MqttSensorClient implements MqttCallbackExtended{
         message.setQos(qos);
         message.setRetained(false);
         client.publish(topic,message);
+    }
+
+    public boolean isSubscriptionHealthy(){
+        return subscriptionHealthy;
+    }
+
+    public long secondsSinceLastMessage(){
+        return lastMessageAtMillis  == 0 ? -1 :(System.currentTimeMillis() - lastMessageAtMillis)/1000;
     }
 }
 
