@@ -2,14 +2,15 @@ package com.coelhotechne.detection_system.detection.application;
 
 import com.coelhotechne.detection_system.cam.domain.base.BaseCam;
 import com.coelhotechne.detection_system.cam.domain.fixed.CamFixed;
+import com.coelhotechne.detection_system.cam.exceptions.CamNotFoundException;
 import com.coelhotechne.detection_system.cam.infrastructure.CamFixedRepository;
-import com.coelhotechne.detection_system.detection.domain.Detection;
-import com.coelhotechne.detection_system.detection.domain.DetectionTypeRules;
-import com.coelhotechne.detection_system.detection.domain.SensorDetection;
+import com.coelhotechne.detection_system.cam.infrastructure.CamRepository;
+import com.coelhotechne.detection_system.detection.domain.*;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.detection.event.DetectionRecordedEvent;
 import com.coelhotechne.detection_system.detection.infrastructure.DetectionRepository;
+import com.coelhotechne.detection_system.globalClass.time.DeviceClock;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorDetectionPayload;
 import com.coelhotechne.detection_system.sensor.event.SensorDetectionEvent;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -41,7 +43,7 @@ public class DetectionRecorder {
     private final DetectionRepository repository;
     private final ApplicationEventPublisher eventPublisher;
     private final SensorRepository sensorRepository;
-    private final CamFixedRepository camFixedRepository;
+    private final CamRepository camRepository;
     private final DetectionMetrics metrics;
     private final Clock clock;
     private final Duration trackDedupWindow;
@@ -49,14 +51,14 @@ public class DetectionRecorder {
     public DetectionRecorder(
             DetectionRepository repository,
             SensorRepository sensorRepository,
-            CamFixedRepository camFixedRepository,
+            CamRepository camRepository,
             ApplicationEventPublisher eventPublisher,
             DetectionMetrics detectionMetrics,
             Clock clock,
             @Value("${detection.camera.track-dedup-window:30s}")Duration trackDedupWindow) {
         this.repository = repository;
         this.sensorRepository = sensorRepository;
-        this.camFixedRepository = camFixedRepository;
+        this.camRepository = camRepository;
         this.eventPublisher = eventPublisher;
         this.metrics= detectionMetrics;
         this.clock = clock;
@@ -122,7 +124,62 @@ public class DetectionRecorder {
         return store(detection);
     }
 
+    public DetectionRecordResult recordFromCamera(UUID camId,CamDetectionCommand command){
+        UUID sourceEventId = cameraSourceEventId(camId,command.eventId());
+        DetectionType type = DetectionType.fromCode(command.type());
 
+        Optional<Detection>existing = repository.findBySourceEventId(sourceEventId);
+        if (existing.isPresent()){
+            metrics.count(DetectionDeviceType.CAMERA,type,DetectionOutcome.DUPLICATE);
+            return DetectionRecordResult.duplicate(existing.get());
+        }
+
+        BaseCam cam = camRepository.findById(camId)
+                .orElseThrow(()-> new CamNotFoundException(camId.toString()," Camera not found!"));
+
+        if (command.type() == null || command.type().isBlank()){
+            return discard(DetectionDeviceType.CAMERA,null,DetectionOutcome.INVALID,"Type is required");
+        }
+
+        if (!DetectionTypeRules.allowsCamera(type)){
+            return discard(DetectionDeviceType.CAMERA,type,DetectionOutcome.TYPE_NOT_ALLOWED,
+                    "Type %s not allowed for cameras".formatted(type));
+        }
+        if (isBelowThreshold(cam,command.confidence())){
+            return discard(DetectionDeviceType.CAMERA,type,DetectionOutcome.BELOW_THRESHOLD,"confidence below camera threshold");
+        }
+      Instant receivedAt = clock.instant();
+      Instant detectedAt = DeviceClock.resolve(command.detectedAt(),receivedAt);
+
+      if (command.trackId()!=null && repository.existsCamTrackSince(
+              camId,command.trackId(),type,detectedAt.minus(trackDedupWindow))){
+          return discard(DetectionDeviceType.CAMERA,type,DetectionOutcome.TRACK_DEDUPLICATED,
+                  "track %d already recorded in the last %s".formatted(command.trackId(),trackDedupWindow));
+      }
+      CamDetection camDetection;
+
+      try {
+          camDetection = new CamDetection(
+                  sourceEventId,
+                  cam,
+                  type,
+                  command.type(),
+                  detectedAt,
+                  receivedAt,
+                  command.confidence(),
+                  command.trackId(),
+                  command.moving(),
+                  command.taxon(),
+                  BoundingBox.of(command.bbox()),
+                  command.snapshotRef(),
+                  command.modelVersion()
+          );
+      }catch (IllegalArgumentException ex){
+          return discard(DetectionDeviceType.CAMERA,type,DetectionOutcome.INVALID,ex.getMessage());
+      }
+      cam.recordCommunication(receivedAt);
+      return store(camDetection);
+    }
 
 
     static Instant resolveDetectedAt(Instant reported,Instant recivedAt){
