@@ -7,7 +7,7 @@ import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import java.time.Instant;
 import java.util.UUID;
 
-public record DetectionRedordedEvent(
+public record DetectionRecordedEvent(
         UUID detectionId,
         DetectionDeviceType deviceType,
         UUID sourceId,
@@ -15,8 +15,8 @@ public record DetectionRedordedEvent(
         UUID zoneId,
         Instant detectedAt
 ) {
-    public static DetectionRedordedEvent of(Detection detection){
-        return new DetectionRedordedEvent(
+    public static DetectionRecordedEvent of(Detection detection){
+        return new DetectionRecordedEvent(
                 detection.getUuid(),
                 detection.getDeviceType(),
                 detection.getSourceId(),
