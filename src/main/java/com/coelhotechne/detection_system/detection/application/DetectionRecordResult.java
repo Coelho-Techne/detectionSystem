@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.detection.application;
 
+import com.coelhotechne.detection_system.detection.application.enums.DetectionOutcome;
 import com.coelhotechne.detection_system.detection.domain.Detection;
 
 public record DetectionRecordResult(
