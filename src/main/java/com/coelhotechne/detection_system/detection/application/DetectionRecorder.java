@@ -3,8 +3,8 @@ package com.coelhotechne.detection_system.detection.application;
 import com.coelhotechne.detection_system.cam.domain.base.BaseCam;
 import com.coelhotechne.detection_system.cam.domain.fixed.CamFixed;
 import com.coelhotechne.detection_system.cam.exceptions.CamNotFoundException;
-import com.coelhotechne.detection_system.cam.infrastructure.CamFixedRepository;
 import com.coelhotechne.detection_system.cam.infrastructure.CamRepository;
+import com.coelhotechne.detection_system.detection.application.enums.DetectionOutcome;
 import com.coelhotechne.detection_system.detection.domain.*;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
@@ -78,7 +78,7 @@ public class DetectionRecorder {
         if (payload == null || !payload.hasCategory()){
             log.warn("Detection payload from sensor {} - discarded",event.sensorId());
             return discard(DetectionDeviceType.SENSOR,
-                    null,DetectionOutcome.INVALID,
+                    null, DetectionOutcome.INVALID,
                     "category is required");
         }
         DetectionType type = DetectionType.fromCode(payload.category());
