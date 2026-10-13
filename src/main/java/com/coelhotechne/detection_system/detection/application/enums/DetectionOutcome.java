@@ -1,4 +1,4 @@
-package com.coelhotechne.detection_system.detection.application;
+package com.coelhotechne.detection_system.detection.application.enums;
 
 public enum DetectionOutcome {
     STORED,
