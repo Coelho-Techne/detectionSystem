@@ -24,6 +24,10 @@ public enum DetectionType {
     HIGH_HEAT("High Heat"),
     GAS_LEAK("Gas Leak"),
     CARBON_MONOXIDE("Carbon Monoxide"),
+    AIR_HUMIDITY("Air Humidity"),
+    TOXIC_GAS("Toxic Gas"),
+    /** Oxigênio abaixo do seguro — gás inerte (N2, Ar, He) deslocando o ar. */
+    OXYGEN_DEFICIENCY("Oxygen Deficiency"),
 
     // Água
     WATER_LEAK("Water Leak"),
@@ -32,7 +36,6 @@ public enum DetectionType {
     // Pessoas
     FALL("Fall"),
 
-    /** Origem mandou um código fora do catálogo; o valor cru fica em {@code Detection.unmappedType}. */
     UNKNOWN("Unknown");
 
     private final String label;
@@ -47,7 +50,6 @@ public enum DetectionType {
 
     /**
      * Converte o código enviado pela origem. Tolera caixa, espaços e hífen
-     * ({@code "door open"}, {@code "door-open"}, {@code "DOOR_OPEN"}).
      * Nunca lança: código desconhecido vira {@link #UNKNOWN} — quem chama decide se loga.
      */
     public static DetectionType fromCode(String code) {
