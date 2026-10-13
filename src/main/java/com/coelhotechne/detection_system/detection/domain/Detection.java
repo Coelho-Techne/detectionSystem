@@ -53,6 +53,9 @@ public abstract class Detection extends BaseEntity {
     @Column(name = "description", updatable = false, length = DESCRIPTION_MAX)
     private String description;
 
+    @Column(name = "source_homologated", nullable = false, updatable = false)
+    private boolean sourceHomologated;
+
     /** Exclusivo do JPA. */
     protected Detection() {
     }
@@ -65,7 +68,8 @@ public abstract class Detection extends BaseEntity {
                         Instant detectedAt,
                         Instant receivedAt,
                         BigDecimal confidence,
-                        String description) {
+                        String description,
+                        boolean sourceHomologated) {
         this.sourceEventId = Objects.requireNonNull(sourceEventId, "sourceEventId is required");
         this.deviceType = Objects.requireNonNull(deviceType, "source is required");
         this.type = Objects.requireNonNull(type, "type is required");
@@ -75,6 +79,7 @@ public abstract class Detection extends BaseEntity {
         this.receivedAt = Objects.requireNonNull(receivedAt, "receivedAt is required");
         this.confidence = requireValidConfidence(confidence);
         this.description = truncate(description, DESCRIPTION_MAX);
+        this.sourceHomologated = sourceHomologated;
     }
 
     /** UUID do dispositivo que detectou (sensor, câmera...). */
@@ -115,6 +120,11 @@ public abstract class Detection extends BaseEntity {
     public String getDescription() {
         return description;
     }
+
+    public boolean isSourceHomologated() {
+        return sourceHomologated;
+    }
+
     /** Normaliza o valor da confianca de uma detecao por porcentagem */
     private static BigDecimal requireValidConfidence(BigDecimal confidence) {
         if (confidence == null) {
@@ -126,7 +136,7 @@ public abstract class Detection extends BaseEntity {
         return confidence.setScale(3, RoundingMode.HALF_UP);
     }
     /** Retira espacos antes e depois da frase e limita pelo max */
-    private static String truncate(String value, int max) {
+    protected static String truncate(String value, int max) {
         if (value == null || value.isBlank()) {
             return null;
         }
