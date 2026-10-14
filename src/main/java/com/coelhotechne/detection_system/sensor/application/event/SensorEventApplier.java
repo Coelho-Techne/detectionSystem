@@ -28,22 +28,18 @@ public class SensorEventApplier {
     private final SensorRepository repository;
     private final ApplicationEventPublisher eventPublisher;
     private final SensorDiagnosticsThresholds thresholds;
-    private final Map<SensorNiche, SensorNicheReadingHandler> nicheHandlers;
     private final PowerSupplyThresholds powerSupplyThresholds;
 
     public SensorEventApplier(
             SensorRepository sensorRepository,
             ApplicationEventPublisher eventPublisher,
             SensorDiagnosticsThresholds thresholds,
-            PowerSupplyThresholds powerSupplyThresholds,
-            List<SensorNicheReadingHandler> handler
+            PowerSupplyThresholds powerSupplyThresholds
             ){
         this.repository=sensorRepository;
         this.eventPublisher=eventPublisher;
         this.thresholds=thresholds;
-        this.nicheHandlers= new EnumMap<>(SensorNiche.class);
         this.powerSupplyThresholds=powerSupplyThresholds;
-        handler.forEach(h -> this.nicheHandlers.put(h.niche(),h));
     }
     @Transactional
     public void apply(SensorEvent sensorEvent){
@@ -82,7 +78,7 @@ public class SensorEventApplier {
         PowerSupply power = sensor.getPowerSupply();
         if (power==null){
             log.debug("Sensor {} with not power supply - power reading ignored ",sensor.getUuid());
-            return PowerSupply.PowerOutcome.unchanged(power.getStatus());
+            return PowerSupply.PowerOutcome.unchanged(null);
         }
         if (!event.diagnostics().hasPowerReading()){
             return PowerSupply.PowerOutcome.unchanged(power.getStatus());
@@ -97,14 +93,7 @@ public class SensorEventApplier {
 
     private void applyDetection(SensorDetectionEvent event) {
         Sensor sensor = requireSensor(event.sensorId());
-
-        SensorNicheReadingHandler handle = nicheHandlers.get(sensor.getSensorNiche());
-        if (handle != null) {
-            handle.handler(sensor, event.detection());
-        } else {
-            log.debug("No handle for the niche.{} (sensor {}) — detection recorded without interpretation",
-                    sensor.getSensorNiche(), sensor.getUuid());
-        }
+        sensor.touchCommunication(event.occurredAt());
         eventPublisher.publishEvent(event);
     }
 
