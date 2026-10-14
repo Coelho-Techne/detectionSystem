@@ -9,7 +9,8 @@ public record SensorDetectionEvent(
         UUID eventId,
         UUID sensorId,
         SensorDetectionPayload detection,
-        Instant occurredAt
+        Instant occurredAt,
+        Instant detectedAt
 ) implements SensorEvent {
 }
 
