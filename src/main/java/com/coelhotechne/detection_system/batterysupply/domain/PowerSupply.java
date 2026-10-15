@@ -90,8 +90,9 @@ public class PowerSupply {
             this.percentage=reading;
         }
         this.status=resolved;
-        return new PowerOutcome(previus,PowerSupplyStatus.DISCONNECTED,true);
+        return new PowerOutcome(previus,resolved,true);
     }
+
     public PowerOutcome markDisconnected(){
         PowerSupplyStatus previus = this.status;
         if(isBatteryless()||previus == PowerSupplyStatus.DISCONNECTED){
@@ -100,6 +101,7 @@ public class PowerSupply {
         this.status=PowerSupplyStatus.DISCONNECTED;
         return new PowerOutcome(previus,PowerSupplyStatus.DISCONNECTED,true);
     }
+
     private PowerSupplyStatus resolveStatus(BigDecimal reading, Boolean charging,PowerSupplyThresholds thresholds ){
         if (isBatteryless()){
             return PowerSupplyStatus.NOT_APPLICABLE;
