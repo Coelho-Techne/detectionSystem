@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
-public class DeviceClock {
+public final class DeviceClock {
     public static final Duration MAX_FUTURE_SKEW = Duration.ofMinutes(5);
     public static final Duration MAX_PAST_AGE = Duration.ofHours(24);
 
