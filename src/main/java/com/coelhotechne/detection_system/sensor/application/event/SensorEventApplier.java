@@ -67,13 +67,25 @@ public class SensorEventApplier {
 
         PowerSupply.PowerOutcome power= applyPowerReading(sensor,event);
         if (!outcome.persist() && !power.persist()) {
-            return;
+            Sensor saved = saveOrConflict(sensor);
+            publishStatusChangeIfAny(saved.getUuid(), outcome.previousStatus(),
+                    saved.getSensorStatus(), event.occurredAt());
+            publishPowerChangeIfAny(saved.getUuid(),power,event.occurredAt());
         }
-        Sensor saved = saveOrConflict(sensor);
-        publishStatusChangeIfAny(saved.getUuid(), outcome.previousStatus(),
-                saved.getSensorStatus(), event.occurredAt());
+        eventPublisher.publishEvent(event);
     }
 
+    private void publishPowerChangeIfAny(UUID sensorId, PowerSupply.PowerOutcome power, Instant ocurredAt){
+        if (power.persist() && power.statusChanged()){
+            eventPublisher.publishEvent(new SensorPowerSupplyEvent(
+                    UUID.randomUUID(),
+                    sensorId,
+                    power.previousStatus(),
+                    power.currentStatus(),
+                    ocurredAt
+            ));
+        }
+    }
     private PowerSupply.PowerOutcome applyPowerReading(Sensor sensor, SensorTelemetryEvent event) {
         PowerSupply power = sensor.getPowerSupply();
         if (power==null){
@@ -84,7 +96,7 @@ public class SensorEventApplier {
             return PowerSupply.PowerOutcome.unchanged(power.getStatus());
         }
         return power.applyReading(
-                event.diagnostics().powerPercentege(),
+                event.diagnostics().powerPercentage(),
                 event.diagnostics().powerCharging(),
                 event.occurredAt(),
                 powerSupplyThresholds
