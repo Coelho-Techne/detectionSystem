@@ -9,6 +9,10 @@ public record SensorTelemetryEvent(
         UUID eventId,
         UUID sensorId,
         SensorTelemetryPayload diagnostics,
-        Instant occurredAt
+        Instant occurredAt,
+        Instant receivedAt
 ) implements SensorEvent{
+    public  boolean hasDeviceMessageId(){
+        return diagnostics != null && diagnostics.msgId() != null;
+    }
 }
