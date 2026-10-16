@@ -5,157 +5,124 @@ import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.telemetry.api.dto.TelemetryMapper;
 import com.coelhotechne.detection_system.telemetry.api.dto.TelemetryRequest;
 import com.coelhotechne.detection_system.telemetry.api.dto.TelemetryResponse;
+import com.coelhotechne.detection_system.telemetry.api.dto.TelemetrySeriesPoint;
 import com.coelhotechne.detection_system.telemetry.domain.Telemetry;
-import com.coelhotechne.detection_system.telemetry.exceptions.TelemetryConcurrentModificationException;
+import com.coelhotechne.detection_system.telemetry.domain.enums.TelemetryMetric;
+import com.coelhotechne.detection_system.telemetry.domain.enums.TelemetrySource;
+import com.coelhotechne.detection_system.telemetry.exceptions.TelemetryInvalidQueryException;
 import com.coelhotechne.detection_system.telemetry.exceptions.TelemetryNotFoundException;
-import com.coelhotechne.detection_system.telemetry.exceptions.TelemetryNullException;
+import com.coelhotechne.detection_system.telemetry.exceptions.TelemetryRejectedException;
 import com.coelhotechne.detection_system.telemetry.infrastructure.TelemetryRepository;
-import com.coelhotechne.detection_system.zone.application.ZoneService;
-import com.coelhotechne.detection_system.zone.domain.Zone;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
-
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+
 @Service
 @Log4j2
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class TelemetryServiceImpl implements TelemetryService{
+
+    static final Duration MIN_BUCKET = Duration.ofMinutes(1);
+    static final Duration MAX_BUCKET = Duration.ofDays(1);
     private final TelemetryRepository repository;
     private final TelemetryMapper mapper;
-    private final ZoneService zoneService;
     private final SensorService sensorService;
-
-    @Override
-    public Telemetry requireTelemetry(UUID telemetryId) {
-        if (telemetryId == null){
-            throw new TelemetryNullException("null","Cannot find telemetry, because it is is null");
-        }
-        return repository.findById(telemetryId)
-                .orElseThrow(() -> new TelemetryNotFoundException(telemetryId.toString(),"Telemetry not found."));
-    }
-    @Override
-    @Transactional(readOnly = true)
-    public Page<TelemetryResponse> findTelemetryPageList(Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toResponse);
-    }
-    // user setter, get and read the values ->
-    @Override
-    @Transactional(readOnly = true)
-    public List<TelemetryResponse> findAllTelemetryList() {
-        return repository.findAll().stream().map(mapper::toResponse).toList();
-    }
+    private final TelemetryThresholdEvaluator thresholdEvaluator;
+    private final Clock clock;
 
     @Override
     @Transactional(readOnly = true)
-    public TelemetryResponse findTelemetryId(UUID uuid) {
-        return mapper.toResponse(requireTelemetry(uuid));
+    public Page<TelemetryResponse>search(TelemetryFilter filter, Pageable pageable){
+        TelemetryFilter bounded = filter.withDefaults(clock.instant());
+        return repository.findAll(TelemetrySpecifications.of(bounded),pageable).map(mapper::toResponse);
     }
 
     @Override
-    @Transactional
-    public TelemetryResponse createTelemetry(TelemetryRequest telemetryRequest) {
-        Zone zoneEntity = zoneService.requireZone(telemetryRequest.zoneId());
-        Sensor sensorEntity = sensorService.requireSensor(telemetryRequest.sensorId());
+    public TelemetryResponse get(UUID id) {
+        return mapper.toResponse(requireId(id));
 
-        Telemetry entity = mapper.toEntity(telemetryRequest);
-        entity.setZone(zoneEntity);
-        entity.setSensor(sensorEntity);
-        entity.setMeasuredAt(telemetryRequest.measuredAt()!=null ? telemetryRequest.measuredAt() : Instant.now());
-        Telemetry saved = repository.save(entity);
-        log.info("Telemetry {} created manually for sensor {} in zone {}",saved.getUuid(),saved.getSensor(),saved.getZone());
-        return mapper.toResponse(saved);
     }
 
     @Override
-    @Transactional
-    public TelemetryResponse updateTelemetry(UUID uuid, TelemetryRequest telemetryRequest) {
-        Telemetry updated = requireTelemetry(uuid);
-
-        Zone zoneEntity = zoneService.requireZone(telemetryRequest.zoneId());
-        Sensor sensorEntity = sensorService.requireSensor(telemetryRequest.sensorId());
-
-        updated.setSensor(sensorEntity);
-        updated.setZone(zoneEntity);
-        updated.setMeasuredAt(telemetryRequest.measuredAt()!=null ? telemetryRequest.measuredAt() : Instant.now());
-        updated.setMeasuredValue(telemetryRequest.measuredValue());
-        try {
-            Telemetry saved=repository.save(updated);
-            log.info("Telemetry {} updated manually", saved.getUuid());
-            return mapper.toResponse(saved);
-        }catch (ObjectOptimisticLockingFailureException ex){
-            throw new TelemetryConcurrentModificationException
-                    (uuid.toString(),"Telemetry '%s' was modified currenttly, reload and try again"
-                            .formatted(uuid));
-        }
-    }
-
-    @Override
-    @Transactional
-    public TelemetryResponse deleteTelemetry(UUID uuid) {
-        Telemetry deleted = requireTelemetry(uuid);
-        repository.delete(deleted);
-        log.info("Telemetry {} deleted manually", uuid);
-        return mapper.toResponse(deleted);
-    }
-
-    //Automatic find, read and get values
-    @Override
-    @Transactional(readOnly = true)
-    public TelemetryResponse findTelemetryWithSensor(UUID telemetryId, UUID sensorId) {
-        Telemetry telemetry = requireTelemetry(telemetryId);
-        requireBelongsToSensor(telemetry,sensorId);
-        return mapper.toResponse(telemetry);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public TelemetryResponse findTelemetryWithZone(UUID telemetryId, UUID zoneid) {
-        Telemetry telemetry = requireTelemetry(telemetryId);
-        requireBelongsToZone(telemetry,zoneid);
-        return mapper.toResponse(telemetry);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public TelemetryResponse findTelemetryWithZoneAndSensor(UUID telemetryId, UUID zoneid, UUID sensorId) {
-        Telemetry telemetry = requireTelemetry(telemetryId);
-        requireBelongsToZone(telemetry, zoneid);
-        requireBelongsToSensor(telemetry, sensorId);
-        return mapper.toResponse(telemetry);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<TelemetryResponse> findLatestBySensor(UUID sensorId) {
+    public List<TelemetryResponse> latest(UUID sensorId) {
         sensorService.requireSensor(sensorId);
-        return repository.findBySensorUuidOrderByMeasuredAtDesc(sensorId).stream()
-                .map(mapper::toResponse)
+        return repository
+                .findLatestPerMetric(sensorId)
+                .stream().map(mapper::toResponse)
                 .toList();
     }
 
-    private void requireBelongsToSensor(Telemetry telemetry, UUID sensorId) {
-        if (!telemetry.getSensor().getUuid().equals(sensorId)) {
-            throw new TelemetryNotFoundException(telemetry.getUuid().toString(),
-                    "Telemetry '%s' does not belong to sensor '%s'".formatted(telemetry.getUuid(), sensorId));
+    @Override
+    public List<TelemetrySeriesPoint> series(UUID sensorId, TelemetryMetric metric, Instant from, Instant to, Duration bucket) {
+        if (metric==null){
+            throw new TelemetryInvalidQueryException("'metric' is required");
         }
+        if (bucket==null|| bucket.compareTo(MIN_BUCKET)<0|| bucket.compareTo(MAX_BUCKET)>0){
+            throw new TelemetryInvalidQueryException("'bucket' must be between 1m and 1d");
+        }
+        sensorService.requireSensor(sensorId);
+        TelemetryFilter filter = new TelemetryFilter(sensorId,null,metric,from,to).withDefaults(clock.instant());
+        return repository.findSeries(
+                sensorId,metric.name(), filter.from(),filter.to(),bucket.toSeconds()
+        ).stream().map(row -> new TelemetrySeriesPoint(
+                Instant.ofEpochSecond(row.getBucketStart().longValue()),
+                toDecimal(row.getAvgValue()),
+                toDecimal(row.getMinValue()),
+                toDecimal(row.getMaxValue()),
+                row.getSamples().longValue())).toList();
     }
 
-    private void requireBelongsToZone(Telemetry telemetry, UUID zoneId) {
-        if (!telemetry.getZone().getUuid().equals(zoneId)) {
-            throw new TelemetryNotFoundException(telemetry.getUuid().toString(),
-                    "Telemetry '%s' does not belong to zone '%s'".formatted(telemetry.getUuid(), zoneId));
+    @Override
+    public TelemetryResponse createManual(TelemetryRequest request) {
+        Sensor sensor = sensorService.requireSensor(request.sensorId());
+        TelemetryMetric metric = TelemetryMetric.fromCode(request.metric());
+        if (metric == null){
+            throw new TelemetryRejectedException(request.sensorId()," unknown metric '%s'".formatted(request.metric()));
         }
+        if (!metric.allowsNiche(sensor.getSensorNiche())){
+            throw new TelemetryRejectedException(request.sensorId(),
+                    "metric %s not allowed for niche %s".formatted(metric,sensor.getSensorNiche()));
+        }
+        Instant now = clock.instant();
+        Instant measuredAt = request.measuredAt()!=null? request.measuredAt():now;
+        Telemetry saved = repository.save(new Telemetry(
+                sensor,
+                metric,
+                request.value(),
+                measuredAt,
+                now,
+                TelemetrySource.MANUAL,
+                null));
+                thresholdEvaluator.evaluete(List.of(saved));
+            log.info("Telemetry {} ({}) created manually for sensor {}",saved.getUuid(),metric,sensor.getUuid());
+
+            return mapper.toResponse(saved);
     }
 
+    @Override
+    public void delete(UUID uuid) {
+        repository.delete(requireId(uuid));
+        log.info("Telemetry {} deleted manually",uuid);
+    }
+    private static BigDecimal toDecimal(Number n){
+        if (n == null){
+            return null;
+        }
+        return n instanceof  BigDecimal bigDecimal ? bigDecimal: new BigDecimal(n.toString());
+    }
+    private Telemetry requireId(UUID uuid){
+        return repository.findById(uuid).orElseThrow(()-> new TelemetryNotFoundException(uuid.toString()," Telemetry not found! "));
+    }
 
 }
