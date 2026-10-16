@@ -2,7 +2,7 @@ package com.coelhotechne.detection_system.sensor.mqtt;
 
 
 import com.coelhotechne.detection_system.sensor.application.event.SensorEventHandler;
-import lombok.RequiredArgsConstructor;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.log4j.Log4j2;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -12,11 +12,14 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 @Service
 @Log4j2
-@RequiredArgsConstructor
 public class MqttSensorClient implements MqttCallbackExtended{
     private static final long RETRY_SECONDS=10;
     private static final String[] EVENT_TOPICS = {
@@ -26,21 +29,55 @@ public class MqttSensorClient implements MqttCallbackExtended{
             "home/+/+/selftest-afk"
     }; // status | telemetry | detection
     private static final int[] EVENT_QOS = {1, 1, 1, 1};
+    private static final int COMMAND_QOS = 1 ;
 
     private final MqttClient client;
     private final SensorEventHandler eventHandler;
     private final TaskScheduler scheduler;
+    private final MqttIngestionMetrics metrics;
+    private final ThreadPoolExecutor ingestion;
 
-    private volatile boolean shuttingDown;
     private volatile boolean subscriptionHealthy;
     private volatile long lastMessageAtMillis;
+
+    public MqttSensorClient (
+        MqttClient client,
+        SensorEventHandler eventHandler,
+        TaskScheduler scheduler,
+        MqttIngestionMetrics metrics,
+        SensorMqttProperties properties
+    ){
+        this.client = client;
+        this.eventHandler = eventHandler;
+        this.scheduler = scheduler;
+        this.metrics = metrics;
+        AtomicInteger counter = new AtomicInteger();
+        this.ingestion = new ThreadPoolExecutor(
+                properties.ingestionThreads(),
+                properties.ingestionThreads(),
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(properties.ingestionQueueCapacity()),
+                r -> {
+                    Thread t = new Thread(r,"mqtt-ingest"+counter.incrementAndGet());
+                    t.setDaemon(true);
+                    return  t;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy());
+            metrics.bindQueue(ingestion.getQueue());
+    }
 
     @EventListener(ApplicationReadyEvent.class)
     public void start(){
         client.setCallback(this);
         tryConnection();
     }
-
+    public  void stop() throws InterruptedException{
+        ingestion.shutdown();
+        if (!ingestion.awaitTermination(10,TimeUnit.SECONDS));
+        log.warn("MQTT ingestion pool did not drain in 10s; {} message(s) dropped",ingestion.getQueue());
+        ingestion.shutdownNow();
+    }
     private void tryConnection() {
     try {
         MqttConnectOptions options = new MqttConnectOptions();
@@ -56,6 +93,7 @@ public class MqttSensorClient implements MqttCallbackExtended{
     private void subscribe(){
         try {
             client.subscribe(EVENT_TOPICS,EVENT_QOS);
+            subscriptionHealthy = true;
             log.info("Subscribed to {}",String.join(", ",EVENT_TOPICS));
         }catch (MqttException e){
             log.error("Failed to subscribe; retrying in {}s",RETRY_SECONDS,e);
@@ -71,17 +109,30 @@ public class MqttSensorClient implements MqttCallbackExtended{
 
     @Override
     public void connectionLost(Throwable throwable) {
+        subscriptionHealthy = false;
     log.warn("MQTT connection lost; automatic reconnect in progress",throwable);
     }
 
     @Override
-    public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
-    try {
-        eventHandler.handle(s,new String(mqttMessage.getPayload(), StandardCharsets.UTF_8));
-    }catch (RuntimeException e){
-        log.error("Failed to process message on {}",s,e);
+    public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
+    lastMessageAtMillis = System.currentTimeMillis();
+    String payload = new String(mqttMessage.getPayload(),StandardCharsets.UTF_8);
+    ingestion.execute(()-> process(topic,payload));
     }
+
+    private void process(String topic, String payload){
+        Timer.Sample sample = metrics.start();
+        Throwable failure = null;
+        try {
+            eventHandler.handle(topic,payload);
+        }catch (RuntimeException e ){
+            failure = e;
+            log.error("Failed to process message on {}",topic,e);
+        }finally {
+            metrics.record(sample,MqttIngestionMetrics.topicType(topic),failure);
+        }
     }
+
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
         // :::::::::::::::::::::::::: Nothing ::::::::::::::::::::::::::
@@ -96,7 +147,9 @@ public class MqttSensorClient implements MqttCallbackExtended{
         message.setRetained(false);
         client.publish(topic,message);
     }
-
+    public void publishCommand(String topic, String command)throws MqttException{
+        publish(topic,command.getBytes(StandardCharsets.UTF_8),COMMAND_QOS);
+    }
     public boolean isSubscriptionHealthy(){
         return subscriptionHealthy;
     }
