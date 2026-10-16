@@ -2,81 +2,110 @@ package com.coelhotechne.detection_system.telemetry.api.controller;
 
 import com.coelhotechne.detection_system.telemetry.api.dto.TelemetryRequest;
 import com.coelhotechne.detection_system.telemetry.api.dto.TelemetryResponse;
+import com.coelhotechne.detection_system.telemetry.api.dto.TelemetrySeriesPoint;
+import com.coelhotechne.detection_system.telemetry.application.TelemetryFilter;
 import com.coelhotechne.detection_system.telemetry.application.TelemetryService;
+import com.coelhotechne.detection_system.telemetry.domain.enums.TelemetryMetric;
+import com.coelhotechne.detection_system.telemetry.exceptions.TelemetryInvalidQueryException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.convert.DurationStyle;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(value = "/api/v1/telemetry",produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Telemetry")
 public class TelemetryController {
     private final TelemetryService service;
     // ---- CRUD manual ----
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Page<TelemetryResponse>> findPageTelemetryList(
-            @PageableDefault(size = 20, sort = "measuredAt", direction = Sort.Direction.DESC) Pageable pageable){
-        return ResponseEntity.status(HttpStatus.OK).body(service.findTelemetryPageList(pageable));
+
+    @PreAuthorize(TelemetryAccess.READ)
+    @GetMapping("/api/v1/telemetry")
+    public ResponseEntity<Page<TelemetryResponse>>search(
+            @RequestParam(name = "sensor_id",required = false)
+            UUID sensorId,
+            @RequestParam(name = "zone_id",required = false)
+            UUID zoneId,
+            @RequestParam(name = "metric",required = false)
+            TelemetryMetric metric,
+            @RequestParam(name = "from",required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Instant from,
+            @RequestParam(name = "to",required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Instant to,
+            @PageableDefault(size = 100,sort = "measuredAt",direction = Sort.Direction.DESC)
+            Pageable pageable
+    ){
+        return ResponseEntity.ok(service.search(new TelemetryFilter(sensorId,zoneId,metric,from,to),pageable));
     }
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(value = "/api/v1/telemetry/all", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TelemetryResponse>> findAllTelemetryList(){
-        return ResponseEntity.status(HttpStatus.OK).body(service.findAllTelemetryList());
+    @PreAuthorize(TelemetryAccess.READ)
+    @GetMapping(value = "/api/v1/telemetry/{id}")
+    public ResponseEntity<TelemetryResponse>get(@PathVariable UUID id){
+        return ResponseEntity.ok(service.get(id));
     }
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TelemetryResponse>findTelemetryId(@PathVariable UUID id){
-        return ResponseEntity.status(HttpStatus.OK).body(service.findTelemetryId(id));
+    @PreAuthorize(TelemetryAccess.READ)
+    @GetMapping(value = "/api/v1/sensor/{id}/telemetry/latest")
+    public ResponseEntity<List<TelemetryResponse>>latest(@PathVariable UUID id){
+        return ResponseEntity.ok(service.latest(id));
     }
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TelemetryResponse>createTelemetryManually(@Valid @RequestBody TelemetryRequest telemetryRequest){
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createTelemetry(telemetryRequest));
+
+    @PreAuthorize(TelemetryAccess.READ)
+    @GetMapping(value = "/api/v1/sensor/{id}/telemetry/series")
+    public ResponseEntity<List<TelemetrySeriesPoint>>series(
+            @PathVariable
+            UUID id,
+            TelemetryMetric metric,
+            @RequestParam(name = "from",required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Instant from,
+            @RequestParam(name = "to",required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            Instant to,
+            @RequestParam(name = "bucket",defaultValue = "5m")
+            String bucket
+                                                            ){
+        return ResponseEntity.ok(service.series(id,metric,from,to,parseBucket(bucket)));
     }
-    @PreAuthorize("hasRole('ADMIN','TECHNICIAN')")
-    @PutMapping(value = "/{id}",produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TelemetryResponse>updateTelemetryManually(@PathVariable UUID id,@Valid @RequestBody TelemetryRequest telemetryRequest){
-        return ResponseEntity.status(HttpStatus.OK).body(service.updateTelemetry(id,telemetryRequest));
+
+    private static Duration parseBucket(String bucket) {
+        try {
+            return DurationStyle.detectAndParse(bucket);
+        }catch (IllegalArgumentException e){
+            throw new TelemetryInvalidQueryException("invalid bucket: "+bucket);
+        }
     }
-    @DeleteMapping(value = "/{id}")
-    public ResponseEntity<TelemetryResponse>deleteTelemetryManually(@PathVariable UUID id){
-        return ResponseEntity.status(HttpStatus.OK).body(service.deleteTelemetry(id));
+
+    @PreAuthorize(TelemetryAccess.WRITE)
+    @GetMapping(value = "/api/v1/telemetry")
+    public ResponseEntity<TelemetryResponse>createManual(@Valid @RequestBody TelemetryRequest request){
+        TelemetryResponse created = service.createManual(request);
+        return ResponseEntity.created(URI.create("/api/v1/telemetry" + created.uuid())).body(created);
     }
-    // Consult from Service
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(value = "/zone/{zoneId}/{telemetryId}",produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TelemetryResponse> getByZone(@PathVariable UUID zoneId,@Valid @PathVariable UUID telemetryId) {
-        return ResponseEntity.status(HttpStatus.OK).body(service.findTelemetryWithZone(telemetryId, zoneId));
+
+    @PreAuthorize(TelemetryAccess.DELETE)
+    @DeleteMapping("/api/v1/telemetry/{id}")
+    public ResponseEntity<Void>delete(@PathVariable UUID id){
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(value = "/sensor/{sensorId}/{telemetryId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TelemetryResponse> getBySensor(@PathVariable UUID sensorId, @PathVariable UUID telemetryId) {
-        return ResponseEntity.status(HttpStatus.OK).body(service.findTelemetryWithSensor(telemetryId, sensorId));
-    }
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(value = "/zone/{zoneId}/sensor/{sensorId}/{telemetryId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TelemetryResponse> getBySensorAndZone(@PathVariable UUID telemetryId
-            ,@PathVariable UUID zoneId
-            , @PathVariable UUID sensorId) {
-        return ResponseEntity.status(HttpStatus.OK).body(service.findTelemetryWithZoneAndSensor(telemetryId,zoneId, sensorId));
-    }
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping(value = "/sensor/{sensorId}/latest", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TelemetryResponse>> getLatestBySensor(@PathVariable UUID sensorId) {
-        return ResponseEntity.ok(service.findLatestBySensor(sensorId));
-    }
+
+
 }
