@@ -58,7 +58,9 @@ public class SensorEventFactory {
 
     private SensorTelemetryEvent createTelemetry(UUID sensorId, String payload) {
         SensorTelemetryPayload telemetry = objectMapper.readValue(payload, SensorTelemetryPayload.class);
-        return new SensorTelemetryEvent(UUID.randomUUID(), sensorId, telemetry, clock.instant());
+        Instant receivedAt = clock.instant();
+        UUID eventId = telemetry.msgId() != null ? nameUuid(sensorId+ "|" + telemetry.msgId()):UUID.randomUUID();
+        return new SensorTelemetryEvent(UUID.randomUUID(), sensorId, telemetry,DeviceClock.resolve(telemetry.measuredAt(),receivedAt),receivedAt );
     }
 
     static UUID detectionEventId(UUID sensorId,SensorDetectionPayload payload){
@@ -66,7 +68,7 @@ public class SensorEventFactory {
             return nameUuid(sensorId+"|"+ payload.eventId());
         }
         if (payload.detectedAt()!=null){
-            return nameUuid(sensorId+"|"+ payload.category()+"|"+payload.detectedAt());
+            return nameUuid(sensorId + "|" + payload.category() + "|" + payload.detectedAt());
         }
         return UUID.randomUUID();
     }
