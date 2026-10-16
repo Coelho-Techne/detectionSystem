@@ -7,6 +7,6 @@ public enum GasHazard {
     TOXIC,
     /** Desloca o oxigênio. Resposta: sair do ambiente; não entrar sem ar respirável. */
     ASPHYXIANT,
-    /** Código fora do catálogo. Tratado como vazamento: na dúvida, alarme, não silêncio. */
+    /** Código fora do catálogo. Tratado como vazamento: na dúvida, alarme. */
     UNKNOWN
 }
