@@ -8,12 +8,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.*;
 import org.hibernate.annotations.OptimisticLock;
-import org.springframework.security.core.parameters.P;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Embeddable
 @Getter
