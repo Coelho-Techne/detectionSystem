@@ -8,7 +8,7 @@ import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class PowerSupplyTest {
+class PowerSupplyTest {
     private static final PowerSupplyThresholds THRESHOLDS =
             new PowerSupplyThresholds(
                     new BigDecimal("30"),new BigDecimal("15"),
