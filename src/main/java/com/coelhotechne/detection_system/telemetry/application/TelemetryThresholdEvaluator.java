@@ -4,7 +4,7 @@ import com.coelhotechne.detection_system.telemetry.domain.Telemetry;
 import com.coelhotechne.detection_system.telemetry.domain.enums.TelemetryMetric;
 import com.coelhotechne.detection_system.telemetry.event.TelemetryThresholdEvent.Band;
 import com.coelhotechne.detection_system.telemetry.event.TelemetryThresholdEvent;
-import com.coelhotechne.detection_system.telemetry.application.TelemetryThresholdPropeties.Limit;
+import com.coelhotechne.detection_system.telemetry.application.TelemetryThresholdProperties.Limit;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -17,12 +17,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class TelemetryThresholdEvaluator {
 
-    private final TelemetryThresholdPropeties propeties;
+    private final TelemetryThresholdProperties propeties;
     private final ApplicationEventPublisher eventPublisher;
     private final Map<Key, TelemetryThresholdEvent.Band> bands = new ConcurrentHashMap<>();
 
     public TelemetryThresholdEvaluator(
-            TelemetryThresholdPropeties propeties,
+            TelemetryThresholdProperties propeties,
             ApplicationEventPublisher eventPublisher
     ){
         this.propeties=propeties;
