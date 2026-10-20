@@ -7,11 +7,11 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 @ConfigurationProperties(prefix = "telemetry.threshold")
-public record TelemetryThresholdPropeties (
+public record TelemetryThresholdProperties(
         Map<TelemetryMetric, Limit>limits
 ){
 
-    public TelemetryThresholdPropeties{
+    public TelemetryThresholdProperties {
         limits = limits == null ? Map.of() : Map.copyOf(limits);
     }
 
