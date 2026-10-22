@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.detection.event;
 
+import com.coelhotechne.detection_system.detection.domain.CamDetection;
 import com.coelhotechne.detection_system.detection.domain.Detection;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
@@ -13,7 +14,9 @@ public record DetectionRecordedEvent(
         UUID sourceId,
         DetectionType type,
         UUID zoneId,
-        Instant detectedAt
+        Instant detectedAt,
+        Long trackId,
+        boolean sourceHomologated
 ) {
     public static DetectionRecordedEvent of(Detection detection){
         return new DetectionRecordedEvent(
@@ -22,6 +25,8 @@ public record DetectionRecordedEvent(
                 detection.getSourceId(),
                 detection.getType(),
                 detection.getZone() == null ? null : detection.getZone().getUuid(),
-                detection.getDetectedAt());
+                detection.getDetectedAt(),
+                detection instanceof CamDetection cam ? cam.getTrackId() : null,
+                detection.isSourceHomologated());
     }
 }
