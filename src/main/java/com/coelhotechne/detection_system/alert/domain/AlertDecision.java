@@ -16,6 +16,7 @@ public record AlertDecision(
         AlertSourceType sourceType,
         UUID sourceId,
         UUID zoneId,
+        UUID detectionId,
         String title,
         String description,
         String dedupKey,
