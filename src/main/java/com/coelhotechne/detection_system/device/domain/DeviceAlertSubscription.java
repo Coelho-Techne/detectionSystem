@@ -1,7 +1,6 @@
 package com.coelhotechne.detection_system.device.domain;
 
 
-import com.coelhotechne.detection_system.event.domain.enums.Severity;
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.zone.domain.Zone;
 import jakarta.persistence.*;
