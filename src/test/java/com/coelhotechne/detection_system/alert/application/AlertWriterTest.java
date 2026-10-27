@@ -2,10 +2,7 @@ package com.coelhotechne.detection_system.alert.application;
 
 import com.coelhotechne.detection_system.alert.domain.Alert;
 import com.coelhotechne.detection_system.alert.domain.AlertDecision;
-import com.coelhotechne.detection_system.alert.domain.enums.AlertCategory;
-import com.coelhotechne.detection_system.alert.domain.enums.AlertSourceType;
-import com.coelhotechne.detection_system.alert.domain.enums.AlertType;
-import com.coelhotechne.detection_system.alert.domain.enums.Severity;
+import com.coelhotechne.detection_system.alert.domain.enums.*;
 import com.coelhotechne.detection_system.alert.event.AlertChangedEvent;
 import com.coelhotechne.detection_system.alert.infrastructure.AlertRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -18,6 +15,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,7 +44,48 @@ class AlertWriterTest {
         writer.apply(AlertRuleOutcome.raise(d));
         assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.CREATED);
     }
+    @Test
+    void repeatOfOpenAlertIsCreated(){
+        AlertDecision d = decision(Severity.MEDIUM);
+        givenUpsertReturns(2,d);
 
+        writer.apply(AlertRuleOutcome.raise(d));
+
+        assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.REPEATED);
+    }
+    @Test
+    void lowSeverityInsideSilenceWindowSuppressed(){
+        AlertDecision d = decision(Severity.LOW);
+        when(repository.existsByDedupKeyAndClosedAtAfter(eq(d.dedupKey()),any())).thenReturn(true);
+
+        writer.apply(AlertRuleOutcome.raise(d));
+        verify(repository,never()).upsertOpen(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any());
+
+        verifyNoInteractions(publishChange());
+    }
+    @Test
+    void highSeverityIgnoreSilenceWindow(){
+        AlertDecision d = decision(Severity.CRITICAL);
+        when(repository.existsByDedupKeyAndClosedAtAfter(any(),any())).thenReturn(true);
+
+        writer.apply(AlertRuleOutcome.raise(d));
+
+        assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.CREATED);
+    }
+
+    @Test
+    void clearClosesOpenAlertsByPrefix(){
+        Alert open = new Alert(decision(Severity.MEDIUM),null,null);
+
+        when(repository.findOpenByKeyPrefix(eq("PREFIX"),any())).thenReturn(List.of(open));
+
+        writer.apply(AlertRuleOutcome.clear("PREFIX"));
+
+        assertThat(open.getStatus()).isEqualTo(AlertStatus.CLEARED);
+        assertThat(open.getClosedAt()).isEqualTo(NOW);
+        assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.CLEARED);
+    }
 
     private void givenUpsertReturns(int rows,AlertDecision d){
         when(repository.upsertOpen(any(), any(), any(), any(), any(), any(), any(), any(), any(),
