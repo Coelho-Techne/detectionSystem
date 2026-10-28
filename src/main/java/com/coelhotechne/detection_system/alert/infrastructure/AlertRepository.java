@@ -26,12 +26,12 @@ public interface AlertRepository extends JpaRepository<Alert, UUID>, JpaSpecific
             values (:uuid, 0, :now, :now,
                     :category, :type, :severity, 'TRIGGERED', :sourceType, :sourceId,
                     :detectionId, :zoneId, :title, :description, :dedupKey,
-                    1, :occurredAt, :occurredAt) as incoming
+                    1, :occurredAt, :occurredAt)
             on duplicate key update
-                occurrence_count = alert.occurrence_count + 1,
-                last_occurred_at = greatest(alert.last_occurred_at, incoming.last_occurred_at),
-                updated_at       = incoming.updated_at,
-                version          = alert.version + 1
+                occurrence_count = occurrence_count + 1,
+                last_occurred_at = greatest(last_occurred_at, values(last_occurred_at)),
+                updated_at       = values(updated_at),
+                version          = version + 1
             """,nativeQuery = true)
     int upsertOpen(
             @Param("uuid")
