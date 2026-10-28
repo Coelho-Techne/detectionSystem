@@ -42,4 +42,8 @@ public class Device extends BaseEntity {
     private LocalDateTime lastCommunication;
     @Column(unique = true,name = "access_key",nullable = false)
     private String accessKey;
+
+    public void issueAccessKey(String accessKeyHash) {
+        this.accessKey = java.util.Objects.requireNonNull(accessKeyHash, "accessKeyHash is required");
+    }
 }
