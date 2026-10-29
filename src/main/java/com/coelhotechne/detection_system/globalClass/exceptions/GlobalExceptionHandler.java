@@ -2,6 +2,7 @@ package com.coelhotechne.detection_system.globalClass.exceptions;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.*;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -26,7 +27,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         }
         return super.handleErrorResponseException(ex, headers, status, request);
     }
-
+    @ExceptionHandler(DomainInvariantViolationException.class)
+    public ProblemDetail handleInvariant(DomainInvariantViolationException ex){
+        return invariant(ex);
+    }
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException e){
     ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT
@@ -34,7 +38,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     pd.setTitle("Current Modification");
     return pd;
     }
-
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLook(ObjectOptimisticLockingFailureException ex){
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "The resource was modified concurrently; reload and try again");
+        pd.setTitle("Concurrent modification");
+        return pd;
+    }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleIntegrity(DataIntegrityViolationException ex){
+        log.warn("Data integrity violation: {}",
+                NestedExceptionUtils.getMostSpecificCause(ex).getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "The request conflicts with existing data (duplicate value or record still in use)");
+        pd.setTitle("Data conflict");
+        return pd;
+    }
     // Rede de segurança: invariante barrada no @PrePersist/@PreUpdate
     // (só deveria disparar se algum caminho pular as validações do service, ex. ZoneService.requireZone())
     @ExceptionHandler({TransactionSystemException.class, InvalidDataAccessApiUsageException.class})
@@ -50,6 +69,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Unexpected error while saving the resource.");
         pd.setTitle("Persistence failure");
+        return pd;
+    }
+
+
+    private static ProblemDetail invariant(DomainInvariantViolationException ex){
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT,ex.getMessage());
+        pd.setTitle("Domain rule violated");
         return pd;
     }
 }
