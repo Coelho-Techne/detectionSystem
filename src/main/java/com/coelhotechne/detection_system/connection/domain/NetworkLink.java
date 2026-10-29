@@ -30,7 +30,7 @@ public class NetworkLink {
     }
 
     public void updateSignal(int dbm){
-        if (!linkType.isWireless()) {
+        if (linkType==null||!linkType.isWireless()) {
             throw new IllegalStateException("This device is not wireless, don't have signal");
         }
         this.signalStrengthDbm=dbm;
