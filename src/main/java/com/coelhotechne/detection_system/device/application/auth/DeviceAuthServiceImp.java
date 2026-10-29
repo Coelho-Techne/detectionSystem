@@ -13,6 +13,7 @@ import com.coelhotechne.detection_system.globalClass.security.IssuedAccessKeyRes
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class DeviceAuthServiceImp implements DeviceAuthService{
     private final Clock clock;
 
     @Override
+    @Transactional
     public DeviceAuthResponse authenticate(UUID uuid, String providedAccessKey) {
         Optional<Device> device = repository.findById(uuid)
                 .filter(d -> Boolean.TRUE.equals(d.getStatus()))
@@ -42,6 +44,7 @@ public class DeviceAuthServiceImp implements DeviceAuthService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean isValidAccessKey(UUID uuid, String providedKey) {
      return repository.findById(uuid).filter(d-> Boolean.TRUE.equals(d.getStatus()))
              .map(d->hasher.matches(providedKey,d.getAccessKey()))
@@ -52,7 +55,8 @@ public class DeviceAuthServiceImp implements DeviceAuthService{
     public IssuedAccessKeyResponse rotateAccessKey(UUID uuid) {
         Device entity = repository
                 .findById(uuid)
-                .orElseThrow(()-> new DeviceNotFoundException(uuid.toString(), null, null, "Device id not found!"));
+                .orElseThrow(()->
+                        new DeviceNotFoundException(uuid.toString(), null, "Device id not found!"));
         String newKey = keyGenerator.generate();
         entity.issueAccessKey(newKey);
         log.info("Access key rotated for device: {}",uuid);
