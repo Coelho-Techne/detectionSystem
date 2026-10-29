@@ -5,6 +5,7 @@ import com.coelhotechne.detection_system.device.domain.Device;
 import com.coelhotechne.detection_system.device.domain.DeviceAlertSubscription;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,6 +24,9 @@ public interface DeviceAlertSubscriptionRepository extends JpaRepository<DeviceA
     Optional<DeviceAlertSubscription>findByDeviceUuidAndZoneIsNull(UUID deviceId);
 
     Optional<DeviceAlertSubscription>findByUuidAndDeviceUuid(UUID subscriptionId,UUID deviceIa);
+
+    @Modifying
+    void deleteByDeviceUuid(UUID deviceId);
 
     @Query("""
             select distinct s.device from DeviceAlertSubscription s
