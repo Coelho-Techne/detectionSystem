@@ -1,27 +1,21 @@
 package com.coelhotechne.detection_system.device.api.dto;
 
-import com.coelhotechne.detection_system.globalClass.mapper.GenericMapper;
 import com.coelhotechne.detection_system.device.domain.Device;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
 @Component
-public class DeviceMapper implements GenericMapper<Device,DeviceResponse,DeviceRequest> {
-    @Override
-    public Device toEntity(DeviceRequest request) {
+public class DeviceMapper {
+
+    public void toEntity(Device entity,DeviceRequest request) {
         Objects.requireNonNull(request,"Request cannot be null");
-        Device entity = new Device();
         entity.setDeviceName(request.deviceName());
         entity.setDeviceType(request.deviceType());
         entity.setIpAdress(request.ipAddress());
-        entity.setStatus(request.status());
-        entity.setLastCommunication(request.lastCommunication());
-        entity.setAccessKey(request.accessKey());
-        return entity;
+        entity.setStatus(request.status()==null||request.status());
     }
 
-    @Override
     public DeviceResponse toResponse(Device entity) {
         return new DeviceResponse(
                 entity.getUuid(),
