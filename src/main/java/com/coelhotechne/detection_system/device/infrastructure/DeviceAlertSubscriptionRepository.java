@@ -3,15 +3,26 @@ package com.coelhotechne.detection_system.device.infrastructure;
 import com.coelhotechne.detection_system.alert.domain.enums.Severity;
 import com.coelhotechne.detection_system.device.domain.Device;
 import com.coelhotechne.detection_system.device.domain.DeviceAlertSubscription;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DeviceAlertSubscriptionRepository extends JpaRepository<DeviceAlertSubscription, UUID> {
+
+    @EntityGraph(attributePaths = "zone")
+    List<DeviceAlertSubscription> findByDeviceUuid(UUID deviceId);
+
+    Optional<DeviceAlertSubscription>findByDeviceUuidAndZoneUuid(UUID deviceId,UUID zoneId);
+
+    Optional<DeviceAlertSubscription>findByDeviceUuidAndZoneIsNull(UUID deviceId);
+
+    Optional<DeviceAlertSubscription>findByUuidAndDeviceUuid(UUID subscriptionId,UUID deviceIa);
 
     @Query("""
             select distinct s.device from DeviceAlertSubscription s
