@@ -1,6 +1,11 @@
 package com.coelhotechne.detection_system.device.api.dto;
 
+import com.coelhotechne.detection_system.detection.api.dto.DetectionDetailResponse;
+import com.coelhotechne.detection_system.detection.api.dto.DetectionResponse;
+import com.coelhotechne.detection_system.detection.domain.Detection;
+import com.coelhotechne.detection_system.detection.domain.SensorDetection;
 import com.coelhotechne.detection_system.device.domain.Device;
+import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
