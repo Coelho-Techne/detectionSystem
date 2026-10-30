@@ -74,6 +74,7 @@ public class DeviceServiceImp implements DeviceService{
     }
 
     @Override
+    @Transactional
     public void deleteDevice(UUID uuid) {
         Device deleteDevice=requireDevice(uuid);
         subscriptionRepository.deleteByDeviceUuid(uuid);
