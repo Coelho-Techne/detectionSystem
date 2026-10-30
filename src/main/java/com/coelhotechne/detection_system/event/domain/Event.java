@@ -1,10 +1,10 @@
 package com.coelhotechne.detection_system.event.domain;
 
+import com.coelhotechne.detection_system.alert.domain.enums.Severity;
 import com.coelhotechne.detection_system.detection.domain.Detection;
 import com.coelhotechne.detection_system.event.domain.enums.EventCategory;
 import com.coelhotechne.detection_system.event.domain.enums.EventStatus;
 import com.coelhotechne.detection_system.event.domain.enums.EventType;
-import com.coelhotechne.detection_system.event.domain.enums.Severity;
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.zone.domain.Zone;
 import com.fasterxml.jackson.annotation.JsonFormat;
