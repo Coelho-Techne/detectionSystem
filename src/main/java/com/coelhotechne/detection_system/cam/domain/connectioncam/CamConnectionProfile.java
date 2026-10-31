@@ -21,19 +21,14 @@ public class CamConnectionProfile {
     @Enumerated(EnumType.STRING)
     @Column(name = "conn_protocol")
     private CamProtocol protocol;
-
     @Column(name = "conn_stream_uri")
     private String streamUri;       // RTSP / NATIVE
-
     @Column(name = "conn_host")
-    private String host;            // ONVIF / PROPRIETARY_SDK
-
+    private String host;           // ONVIF / PROPRIETARY_SDK
     @Column(name = "conn_port")
     private Integer port;
-
     @Column(name = "conn_vendor_sdk_id")
     private String vendorSdkId;     // PROPRIETARY_SDK — qual fabricante
-
     @Column(name = "conn_credential_ref")
     private String credentialRef;   // referência a um cofre, NUNCA a senha crua
 
@@ -53,6 +48,7 @@ public class CamConnectionProfile {
         this.vendorSdkId = vendorSdkId;
         this.credentialRef = credentialRef;
         this.capabilities = capabilities != null ? capabilities : new HashSet<>();
-        this.networkLink = new NetworkLink(linkType, ipAddress, signalStrengthDbm);
+        this.networkLink = linkType==null && ipAddress == null && signalStrengthDbm ==null
+                ? null : new NetworkLink(linkType, ipAddress, signalStrengthDbm);
     }
 }
