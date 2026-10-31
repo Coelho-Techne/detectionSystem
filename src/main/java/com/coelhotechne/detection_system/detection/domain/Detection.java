@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.detection.domain;
 
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
+import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.zone.domain.Zone;
@@ -55,6 +56,10 @@ public abstract class Detection extends BaseEntity {
 
     @Column(name = "source_homologated", nullable = false, updatable = false)
     private boolean sourceHomologated;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    public DetectionGasType gasType;
 
     /** Exclusivo do JPA. */
     protected Detection() {
@@ -119,6 +124,10 @@ public abstract class Detection extends BaseEntity {
 
     public String getDescription() {
         return description;
+    }
+
+    public DetectionGasType getGasType(){
+        return this.gasType;
     }
 
     public boolean isSourceHomologated() {
