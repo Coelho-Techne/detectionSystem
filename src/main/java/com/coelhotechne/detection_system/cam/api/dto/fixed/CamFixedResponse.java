@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.cam.api.dto.fixed;
-import com.coelhotechne.detection_system.cam.domain.fixed.CamFixed;
+import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
+import com.coelhotechne.detection_system.installation.api.dto.InstallationResponse;
 import com.coelhotechne.detection_system.cam.domain.base.enums.CamStatus;
 import com.coelhotechne.detection_system.cam.domain.base.enums.ImageQuality;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -88,8 +89,8 @@ public record CamFixedResponse(
         Instant frameTimestamp,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
         Instant timestamp,
-        Object powerSupply,
-        Object installation,
+        PowerSupply powerSupply,
+        InstallationResponse installation,
         UUID zoneId,
         CamConnectionSummary camConnection,
         boolean hasAccessKey,
@@ -111,59 +112,7 @@ public record CamFixedResponse(
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
         Instant baselineCapturedAt,
         String crossingLineJson,
-        Float detectionConfidenceThreshold
+        Float detectionConfidenceThreshol
 
 ) {
-
-    public static CamFixedResponse toResponse(CamFixed cam) {
-
-        return new CamFixedResponse(
-                // BaseEntity
-                cam.getUuid(),
-                cam.getVersion(),
-                cam.getCreatedBy(),
-                cam.getLastModifiedBy(),
-                cam.getCreatedAt(),
-                cam.getUpdatedAt(),
-
-                // BaseCam
-                cam.getCamModel(),
-                cam.getFirmwareVersion(),
-                cam.getSerialNumber(),
-                cam.getMacAddress(),
-                cam.getIpAddress(),
-                cam.getRtsp(),
-                cam.getCamStatus(),
-                cam.getWidth(),
-                cam.getHeight(),
-                cam.getImageQuality(),
-                cam.getFps(),
-                cam.getBitrate(),
-                cam.getCompression(),
-                cam.getFrameUrl(),
-                cam.getFrameTimestamp(),
-                cam.getTimestamp(),
-                cam.getPowerSupply(),
-                cam.getInstallation(),
-                cam.getZone() != null ? cam.getZone().getUuid() : null,
-                CamConnectionSummary.from(cam.getCamConnection()),
-                cam.getAccessKey() != null,
-                cam.getLastCommunication(),
-                CamHomologationSummary.from(cam.getHomologation()),
-
-                // CamFixed
-                cam.getCoverageLocation() != null ? cam.getCoverageLocation().getUuid() : null,
-                cam.getMountingAzimuthDeg(),
-                cam.getMountingElevationDeg(),
-                cam.getHorizontalFovDeg(),
-                cam.getVerticalFovDeg(),
-                cam.getDetectionRangeMeters(),
-                cam.getDetectionMaskJson(),
-                cam.getHomographyMatrixJson(),
-                cam.getBaselineFrameUrl(),
-                cam.getBaselineCapturedAt(),
-                cam.getCrossingLineJson(),
-                cam.getDetectionConfidenceThreshold()
-        );
-    }
 }
