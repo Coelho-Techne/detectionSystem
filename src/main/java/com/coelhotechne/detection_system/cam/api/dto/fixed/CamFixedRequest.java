@@ -1,8 +1,14 @@
 package com.coelhotechne.detection_system.cam.api.dto.fixed;
 
+import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
+import com.coelhotechne.detection_system.cam.api.dto.BaseCamData;
 import com.coelhotechne.detection_system.cam.domain.fixed.CamFixed;
+import com.coelhotechne.detection_system.installation.api.dto.InstallationRequest;
 import com.coelhotechne.detection_system.location.domain.Location;
 import com.coelhotechne.detection_system.zone.domain.Zone;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
@@ -35,11 +41,12 @@ public record CamFixedRequest(
 
         // ---- Alimentação / instalação / conexão ----
         // Podem ser DTOs próprios posteriormente
-        Object powerSupply,
-        Object installation,
-        Object camConnection,
-        // ---- CamFixed ----
+        @Valid
+        PowerSupply powerSupply,
+        @Valid
+        InstallationRequest installation,
 
+        // ---- CamFixed ----
         Float mountingAzimuthDeg,
         Float mountingElevationDeg,
         Float horizontalFovDeg,
@@ -49,45 +56,8 @@ public record CamFixedRequest(
         String homographyMatrixJson,
         String baselineFrameUrl,
         String crossingLineJson,
+        @DecimalMin("0.0") @DecimalMax("1.0")
         Float detectionConfidenceThreshold
 
-) {
-
-    public static CamFixed toEntity(CamFixedRequest request, Zone zone, Location location) {
-
-        CamFixed cam = new CamFixed();
-
-        cam.setCamModel(request.camModel());
-        cam.setFirmwareVersion(request.firmwareVersion());
-        cam.setSerialNumber(request.serialNumber());
-        cam.setMacAddress(request.macAddress());
-        cam.setIpAddress(request.ipAddress());
-        cam.setRtsp(request.rtsp());
-
-        cam.setFps(request.fps());
-        cam.setBitrate(request.bitrate());
-        cam.setCompression(request.compression());
-        cam.setFrameUrl(request.frameUrl());
-
-        cam.setZone(zone);
-        cam.setCoverageLocation(location);
-
-        cam.setMountingAzimuthDeg(request.mountingAzimuthDeg());
-        cam.setMountingElevationDeg(request.mountingElevationDeg());
-
-        cam.setHorizontalFovDeg(request.horizontalFovDeg());
-        cam.setVerticalFovDeg(request.verticalFovDeg());
-
-        cam.setDetectionRangeMeters(request.detectionRangeMeters());
-        cam.setDetectionMaskJson(request.detectionMaskJson());
-        cam.setHomographyMatrixJson(request.homographyMatrixJson());
-
-        cam.setBaselineFrameUrl(request.baselineFrameUrl());
-        cam.setCrossingLineJson(request.crossingLineJson());
-        cam.setDetectionConfidenceThreshold(
-                request.detectionConfidenceThreshold()
-        );
-
-        return cam;
-    }
+) implements BaseCamData{
 }
