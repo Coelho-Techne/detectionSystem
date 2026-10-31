@@ -7,11 +7,13 @@ import com.coelhotechne.detection_system.cam.infrastructure.CamRepository;
 import com.coelhotechne.detection_system.detection.application.enums.DetectionOutcome;
 import com.coelhotechne.detection_system.detection.domain.*;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
+import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.detection.event.DetectionRecordedEvent;
 import com.coelhotechne.detection_system.detection.infrastructure.DetectionRepository;
 import com.coelhotechne.detection_system.globalClass.time.DeviceClock;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
+import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorDetectionPayload;
 import com.coelhotechne.detection_system.sensor.event.SensorDetectionEvent;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorNotFoundException;
@@ -36,13 +38,14 @@ import java.util.UUID;
 
 @Component
 public class DetectionRecorder {
+
     private static final Logger log = LogManager.getLogger(DetectionRecorder.class);
 
     static final Duration MAX_FUTURE_SKEW = Duration.ofMinutes(5);
 
     private final DetectionRepository repository;
-    private final ApplicationEventPublisher eventPublisher;
     private final SensorRepository sensorRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final CamRepository camRepository;
     private final DetectionMetrics metrics;
     private final Clock clock;
@@ -73,7 +76,6 @@ public class DetectionRecorder {
 
 
     DetectionRecordResult recordedFromSensor(SensorDetectionEvent event){
-
         SensorDetectionPayload payload = event.detection();
         if (payload == null || !payload.hasCategory()){
             log.warn("Detection payload from sensor {} - discarded",event.sensorId());
@@ -81,16 +83,16 @@ public class DetectionRecorder {
                     null, DetectionOutcome.INVALID,
                     "category is required");
         }
-        DetectionType type = DetectionType.fromCode(payload.category());
-        Sensor sensor = sensorRepository.findById(event.sensorId()).orElseThrow(()->
-                new SensorNotFoundException(event.sensorId().toString()," Sensor not found!"));
-
         if (repository.existsBySourceEventId(event.eventId())){
-            log.debug(
-                    "Detection {} from Sensor {} already recorded (redelivery) - ignored"
+            log.debug("Detection {} from Sensor {} already recorded (redelivery) - ignored"
                     ,event.eventId(),event.sensorId());
             return DetectionRecordResult.duplicate(null);
         }
+        Sensor sensor = sensorRepository.findById(event.sensorId()).orElseThrow(()->
+                new SensorNotFoundException(event.sensorId().toString()," Sensor not found!"));
+
+        DetectionType type = DetectionType.fromCode(payload.category());
+        DetectionGasType gasType = resolvGas(sensor,payload);
 
         if (type == DetectionType.UNKNOWN){
             log.info("Sensor {} (niche {}) reported unmapped detection type '{}' - recorded as UNKNOWN",
@@ -103,6 +105,7 @@ public class DetectionRecorder {
             return discard(DetectionDeviceType.SENSOR,type,DetectionOutcome.TYPE_NOT_ALLOWED,
                     "type %s not allowed for niche %s".formatted(type, sensor.getSensorNiche()));
         }
+
         SensorDetection detection;
         try{
             detection = new SensorDetection(
@@ -126,9 +129,11 @@ public class DetectionRecorder {
 
     public DetectionRecordResult recordFromCamera(UUID camId,CamDetectionCommand command){
         UUID sourceEventId = cameraSourceEventId(camId,command.eventId());
+
         DetectionType type = DetectionType.fromCode(command.type());
 
         Optional<Detection>existing = repository.findBySourceEventId(sourceEventId);
+
         if (existing.isPresent()){
             metrics.count(DetectionDeviceType.CAMERA,type,DetectionOutcome.DUPLICATE);
             return DetectionRecordResult.duplicate(existing.get());
@@ -138,7 +143,8 @@ public class DetectionRecorder {
                 .orElseThrow(()-> new CamNotFoundException(camId.toString()," Camera not found!"));
 
         if (command.type() == null || command.type().isBlank()){
-            return discard(DetectionDeviceType.CAMERA,null,DetectionOutcome.INVALID,"Type is required");
+            return discard(DetectionDeviceType.CAMERA,null,
+                    DetectionOutcome.INVALID,"Type is required");
         }
 
         if (!DetectionTypeRules.allowsCamera(type)){
@@ -175,7 +181,8 @@ public class DetectionRecorder {
                   command.modelVersion()
           );
       }catch (IllegalArgumentException ex){
-          return discard(DetectionDeviceType.CAMERA,type,DetectionOutcome.INVALID,ex.getMessage());
+          return discard(DetectionDeviceType.CAMERA,type,
+                  DetectionOutcome.INVALID,ex.getMessage());
       }
       cam.recordCommunication(receivedAt);
       return store(camDetection);
@@ -190,6 +197,17 @@ public class DetectionRecorder {
     }
 
     // ::::::::::::::::::::::::::::: COMUM :::::::::::::::::::::::::::::
+
+    static DetectionGasType resolvGas(Sensor sensor, SensorDetectionPayload payload){
+        if (sensor.getSensorNiche()!= SensorNiche.GAS){
+            return null;
+        }
+        if (payload.gas() !=null && !payload.gas().isBlank()){
+            return DetectionGasType.fromCode(payload.gas());
+        }
+        DetectionGasType fromCategory = DetectionGasType.fromCode(payload.category());
+        return fromCategory ==DetectionGasType.UNKNOWN ? null : fromCategory;
+    }
 
     private DetectionRecordResult store(Detection detection){
         Detection saved = repository.save(detection);
