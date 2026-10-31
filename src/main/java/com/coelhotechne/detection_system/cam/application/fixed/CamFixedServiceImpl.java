@@ -7,6 +7,7 @@ import com.coelhotechne.detection_system.cam.domain.fixed.CamFixed;
 import com.coelhotechne.detection_system.cam.exceptions.CamNotFoundException;
 import com.coelhotechne.detection_system.cam.exceptions.CamConcurrentModificationException;
 import com.coelhotechne.detection_system.cam.infrastructure.CamFixedRepository;
+import com.coelhotechne.detection_system.installation.application.InstallationResolver;
 import com.coelhotechne.detection_system.location.application.LocationService;
 import com.coelhotechne.detection_system.location.domain.Location;
 import com.coelhotechne.detection_system.zone.application.ZoneService;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -28,16 +30,17 @@ import java.util.UUID;
 @AllArgsConstructor
 @Log4j2
 public class CamFixedServiceImpl implements CamFixedService{
+
     private final CamFixedRepository repository;
     private final CamFixedMapper mapper;
     private final ZoneService zoneService;
     private final LocationService locationService;
+    private final InstallationResolver resolver;
+    private final Clock clock;
 
     @Override
     public CamFixed requireCam(UUID camId) {
-        if (camId==null){
-            throw new IllegalArgumentException("Cam id cannot be null");
-        }
+        Objects.requireNonNull(camId,"Cam id cannot be null");
         return repository.findById(camId)
                 .orElseThrow(() -> new CamNotFoundException(camId.toString(),"Cam not found."));
     }
@@ -49,98 +52,51 @@ public class CamFixedServiceImpl implements CamFixedService{
     }
     @Override
     @Transactional(readOnly = true)
-    public Page<CamFixedResponse> findCamList(Pageable pageable) {
+    public Page<CamFixedResponse> findCamListPage(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public CamFixedResponse findCamId(UUID uuid) {
-        CamFixed cam = requireCam(uuid);
-        return mapper.toResponse(cam);
+        return mapper.toResponse(requireCam(uuid));
     }
 
     @Override
     @Transactional
     public CamFixedResponse createCam(CamFixedRequest camFixedRequest) {
-        Zone zoneEntity = camFixedRequest.zoneId() != null
-                ? zoneService.requireZone(camFixedRequest.zoneId())
-                : null;
-        Location locationEntity = camFixedRequest.coverageLocationId() != null
-                ? locationService.requireLocation(camFixedRequest.coverageLocationId())
-                : null;
-
-        CamFixed entity = mapper.toEntity(camFixedRequest);
-        entity.setZone(zoneEntity);
-        entity.setCoverageLocation(locationEntity);
-
-        if (entity.getBaselineFrameUrl() != null) {
-            entity.setBaselineCapturedAt(Instant.now());
-        }
-
-        repository.save(entity);
-        return mapper.toResponse(entity);
+       CamFixed camFixed = new CamFixed();
+       apply(camFixed, camFixedRequest);
+       if (camFixed.getBaselineFrameUrl()!=null){
+           camFixed.setBaselineCapturedAt(clock.instant());
+       }
+        return mapper.toResponse(repository.save(camFixed));
     }
 
     @Override
     @Transactional
     public CamFixedResponse updateCam(UUID uuid, CamFixedRequest camFixedRequest) {
         CamFixed camFixed = requireCam(uuid);
-        Zone zoneEntity = camFixedRequest.zoneId() != null
-                ? zoneService.requireZone(camFixedRequest.zoneId())
-                : null;
-        Location locationEntity = camFixedRequest.coverageLocationId() != null
-                ? locationService.requireLocation(camFixedRequest.coverageLocationId())
-                : null;
-
-        camFixed.setCamModel(camFixedRequest.camModel());
-        camFixed.setFirmwareVersion(camFixedRequest.firmwareVersion());
-        camFixed.setSerialNumber(camFixedRequest.serialNumber());
-        camFixed.setMacAddress(camFixedRequest.macAddress());
-        camFixed.setIpAddress(camFixedRequest.ipAddress());
-        camFixed.setRtsp(camFixedRequest.rtsp());
-
-        camFixed.setFps(camFixedRequest.fps());
-        camFixed.setBitrate(camFixedRequest.bitrate());
-        camFixed.setCompression(camFixedRequest.compression());
-        camFixed.setFrameUrl(camFixedRequest.frameUrl());
-
-        camFixed.setZone(zoneEntity);
-        camFixed.setCoverageLocation(locationEntity);
-
-        camFixed.setMountingAzimuthDeg(camFixedRequest.mountingAzimuthDeg());
-        camFixed.setMountingElevationDeg(camFixedRequest.mountingElevationDeg());
-        camFixed.setHorizontalFovDeg(camFixedRequest.horizontalFovDeg());
-        camFixed.setVerticalFovDeg(camFixedRequest.verticalFovDeg());
-        camFixed.setDetectionRangeMeters(camFixedRequest.detectionRangeMeters());
-        camFixed.setDetectionMaskJson(camFixedRequest.detectionMaskJson());
-        camFixed.setHomographyMatrixJson(camFixedRequest.homographyMatrixJson());
-
-        // conferencia de  Base Line URL
-        String previousBaselineFrameUrl = camFixed.getBaselineFrameUrl();
-
-        camFixed.setBaselineFrameUrl(camFixedRequest.baselineFrameUrl());
-        if (camFixed.getBaselineFrameUrl()!=null && !Objects.equals(previousBaselineFrameUrl, camFixed.getBaselineFrameUrl())){
-            camFixed.setBaselineCapturedAt(Instant.now());
+        String previousBaseLineFrameUrl = camFixed.getBaselineFrameUrl();
+        if (camFixed.getBaselineFrameUrl() != null
+                && !Objects.equals(previousBaseLineFrameUrl,camFixed.getBaselineFrameUrl())){
+            camFixed.setBaselineCapturedAt(clock.instant());
         }
-
-        camFixed.setCrossingLineJson(camFixedRequest.crossingLineJson());
-        camFixed.setDetectionConfidenceThreshold(camFixedRequest.detectionConfidenceThreshold());
-
-        CamFixed saved = saveOrConflict(camFixed);
-        return mapper.toResponse(saved);
+        return mapper.toResponse(saveOrConflict(camFixed));
     }
 
     @Override
     @Transactional
-    public CamFixedResponse deleteCam(UUID uuid) {
-        CamFixed camFixed = requireCam(uuid);
-        CamFixedResponse response = mapper.toResponse(camFixed);
-        repository.delete(camFixed);
+    public void deleteCam(UUID uuid) {
+        repository.delete(requireCam(uuid));
         log.info("Cam with ID {}, deleted successfully",uuid);
-        return response;
     }
 
+    private void apply(CamFixed camFixed,CamFixedRequest request){
+        Zone zone = request.zoneId() != null ? zoneService.requireZone(request.zoneId()) : null;
+        Location coverage = request.coverageLocationId() != null ? locationService.requireLocation(request.coverageLocationId()):null;
+        mapper.apply(camFixed,request,zone,coverage,resolver.resolve(request.installation()));
+    }
     private CamFixed saveOrConflict(CamFixed camFixed) {
         try {
             return repository.save(camFixed);
