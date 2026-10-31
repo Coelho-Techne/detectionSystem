@@ -8,12 +8,14 @@ import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.zone.domain.Zone;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class DetectionMapper {
 
     public DetectionResponse toResponse(Detection entity) {
+        Objects.requireNonNull(entity,"Detection cannot be null");
         Zone zone = entity.getZone();
-
         return new DetectionResponse(
                 entity.getUuid(),
                 entity.getSourceEventId(),
@@ -26,7 +28,9 @@ public class DetectionMapper {
                 entity.getDetectedAt(),
                 entity.getReceivedAt(),
                 entity.getConfidence(),
-                entity.getDescription()
+                entity.getDescription(),
+                entity.isSourceHomologated(),
+                entity.getGasType()
         );
     }
 
@@ -40,9 +44,8 @@ public class DetectionMapper {
                             sensor.getName(),
                             sensor.getSensorNiche(),
                             sd.getMeasuredValue(),
-                            sd.getMeasuredUnit()
-                    ),
-                    null);
+                            sd.getMeasuredUnit(),
+                            sd.getGasType() == null ? null : sd.getGasType()), null);
         }
 
         if (entity instanceof CamDetection cd){
