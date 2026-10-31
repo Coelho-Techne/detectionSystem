@@ -12,9 +12,9 @@ import java.util.UUID;
 public interface CamFixedService {
     CamFixed requireCam(UUID camId);
     List<CamFixedResponse>findCamList();
-    Page<CamFixedResponse> findCamList(Pageable pageable);
+    Page<CamFixedResponse> findCamListPage(Pageable pageable);
     CamFixedResponse findCamId(UUID uuid);
     CamFixedResponse createCam(CamFixedRequest camFixedRequest);
     CamFixedResponse updateCam(UUID uuid,CamFixedRequest camFixedRequest);
-    CamFixedResponse deleteCam(UUID uuid);
+    void deleteCam(UUID uuid);
 }
