@@ -11,6 +11,7 @@ import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.zone.domain.Zone;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,6 +19,7 @@ import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Setter
 @Getter
@@ -67,7 +69,12 @@ public class BaseCam extends BaseEntity {
     @JsonFormat(shape = JsonFormat.Shape.STRING,pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",timezone = "UTC")
     @Column(name = "cam_timestamp")
     private Instant timestamp;
+
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "type",   column = @Column(name = "power_type", length = 20)),
+            @AttributeOverride(name = "status", column = @Column(name = "power_status", length = 20))
+    })
     @EqualsAndHashCode.Exclude
     private PowerSupply powerSupply;
     @Embedded
@@ -81,6 +88,7 @@ public class BaseCam extends BaseEntity {
     @EqualsAndHashCode.Exclude
     private CamConnectionProfile camConnection;
 
+    @JsonIgnore
     @Setter(AccessLevel.NONE)
     @Column(name = "access_key", unique = true)
     private String accessKey;
@@ -96,14 +104,15 @@ public class BaseCam extends BaseEntity {
 
     //Automatico ::::::::::::::::::::::::::::::::::::::::::::::Selecoes
 
-    public void assignAccessKey(String accessKey) {
-        if (this.accessKey != null) {
-            throw new IllegalStateException("Access Key already assigned to this camera \n use Rotate Access Key to switch");
+    public CamHomologationRecord getHomologation(){
+        if (homologation == null){
+            homologation=new CamHomologationRecord();
         }
-        this.accessKey = accessKey;
+        return homologation;
     }
-    public void rotateAccessKey(String newAccessKey) {
-        this.accessKey = newAccessKey;
+
+    public void issueAccessKey(String accessKeyHash) {
+        this.accessKey = Objects.requireNonNull(accessKeyHash,"accessKeyHash is required");
     }
 
     public void recordCommunication(Instant when) {
@@ -158,5 +167,6 @@ public class BaseCam extends BaseEntity {
                 params.vendorSdkId(), params.credentialRef(), params.capabilities(),
                 params.linkType(), params.ipAddress(), params.signalStrengthDbm()
         );
+        getHomologation().resetForNewConnection();
     }
 }
