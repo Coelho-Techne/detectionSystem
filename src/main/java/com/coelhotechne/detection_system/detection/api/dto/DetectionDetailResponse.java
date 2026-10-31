@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.detection.api.dto;
 
+import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import tools.jackson.databind.PropertyNamingStrategies;
@@ -21,7 +22,8 @@ public record DetectionDetailResponse(
             String name,
             SensorNiche sensorNiche,
             BigDecimal measuredValue,
-            String measuredUnit
+            String measuredUnit,
+            DetectionGasType gasType
     ){
     }
 
