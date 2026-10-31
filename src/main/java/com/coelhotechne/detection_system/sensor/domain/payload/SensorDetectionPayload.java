@@ -24,8 +24,23 @@ public record SensorDetectionPayload(
         @JsonProperty("value")
         BigDecimal value,
         @JsonProperty("unit")
-        String unit
+        String unit,
+        @JsonProperty("gas")
+        String gas
 ) {
+    public SensorDetectionPayload(
+            Integer version,
+            UUID eventId,
+            String category,
+            String description,
+            Instant detectedAt,
+            BigDecimal confidence,
+            BigDecimal value,
+            String unit
+    ){
+        this(version,eventId,category,description,detectedAt,confidence,value,unit,null);
+    }
+
     public boolean hasCategory(){
         return category != null && !category.isBlank();
     }
