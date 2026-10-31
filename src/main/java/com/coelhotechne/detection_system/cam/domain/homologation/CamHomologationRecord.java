@@ -9,11 +9,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.EnumSet;
+import java.util.Set;
 
 @Embeddable
 @Getter
 @NoArgsConstructor
 public class CamHomologationRecord {
+    private static final int RESON_MAX =500;
+    private static final Set<CamHomologationStatus>TESTABLE = EnumSet.of(
+            CamHomologationStatus.PENDING_TEST,
+            CamHomologationStatus.TEST_FAILED,
+            CamHomologationStatus.PENDING_APPROVAL
+    );
+
     @Enumerated(EnumType.STRING)
     @Column(name = "homologation_status")
     private CamHomologationStatus status = CamHomologationStatus.PENDING_TEST;
@@ -30,33 +39,60 @@ public class CamHomologationRecord {
     @Column(name = "homologation_rejection_reason")
     private String rejectionReason;
 
-    public void applyTestResult(CamConnectionTestOutcome outcome) {
-        this.lastTestedAt = Instant.now();
+    public void requireTestable(){
+        if (!TESTABLE.contains(status)){
+            throw new IllegalStateException(
+                    "Cannot teste while homologation status is "+status+"; reopen it first");
+        }
+    }
+
+    public void applyTestResult(CamConnectionTestOutcome outcome,Instant now) {
+        this.lastTestedAt = now;
         if (outcome.success()) {
             this.status = CamHomologationStatus.PENDING_APPROVAL;
             this.failureReason = null;
             this.resolvedCodec = outcome.resolvedCodec();
         } else {
             this.status = CamHomologationStatus.TEST_FAILED;
-            this.failureReason = outcome.errorMessage();
+            this.failureReason = truncate(outcome.errorMessage());
             this.resolvedCodec = null;
         }
     }
 
-    public void approve(String approvedBy) {
+    public void approve(String approvedBy,Instant now) {
         requireStatus(CamHomologationStatus.PENDING_APPROVAL, "approved");
         this.status = CamHomologationStatus.APPROVED;
         this.decidedBy = approvedBy;
-        this.decidedAt = Instant.now();
+        this.decidedAt = now;
         this.rejectionReason = null;
     }
 
-    public void reject(String rejectedBy, String reason) {
+    public void reject(String rejectedBy, String reason,Instant now) {
         requireStatus(CamHomologationStatus.PENDING_APPROVAL, "rejected");
         this.status = CamHomologationStatus.REJECTED;
         this.decidedBy = rejectedBy;
-        this.decidedAt = Instant.now();
-        this.rejectionReason = reason;
+        this.decidedAt = now;
+        this.rejectionReason = truncate(reason);
+    }
+
+    public void reopen(){
+        if (status!=CamHomologationStatus.APPROVED && status!=CamHomologationStatus.REJECTED){
+            throw new IllegalStateException("Cannot reopen while homologation status is: "+status);
+        }
+        clear();
+    }
+
+    public void resetForNewConnection(){
+        clear();
+    }
+
+    private void clear(){
+        this.status=CamHomologationStatus.PENDING_TEST;
+        this.failureReason = null;
+        this.resolvedCodec = null;
+        this.decidedBy = null;
+        this.decidedAt = null;
+        this.rejectionReason = null;
     }
 
     private void requireStatus(CamHomologationStatus required, String action) {
@@ -64,6 +100,10 @@ public class CamHomologationRecord {
             throw new IllegalStateException(
                     "It is only possible" + action + " stems from  " + required + "; current status: " + this.status);
         }
+    }
+
+    private static String truncate(String value){
+        return value == null|| value.length() <= RESON_MAX? value : value.substring(0,RESON_MAX);
     }
 }
 
