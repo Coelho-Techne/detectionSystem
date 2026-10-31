@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.detection.api.dto;
 
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
+import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -9,7 +10,6 @@ import tools.jackson.databind.annotation.JsonNaming;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -39,6 +39,8 @@ public record DetectionResponse(
         Instant detectedAt,
         Instant receivedAt,
         BigDecimal confidence,
-        String description
+        String description,
+        boolean isSourceHomologation,
+        DetectionGasType gasType
 ) {
 }
