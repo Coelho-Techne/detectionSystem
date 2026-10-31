@@ -4,36 +4,42 @@ import com.coelhotechne.detection_system.cam.api.dto.auth.CamAuthResponse;
 import com.coelhotechne.detection_system.cam.application.auth.enums.CamAuthMessage;
 import com.coelhotechne.detection_system.cam.domain.base.BaseCam;
 import com.coelhotechne.detection_system.cam.exceptions.CamAuthenticationException;
+import com.coelhotechne.detection_system.cam.exceptions.CamNotFoundException;
 import com.coelhotechne.detection_system.cam.infrastructure.CamRepository;
+import com.coelhotechne.detection_system.globalClass.security.AccessKeyGenerator;
+import com.coelhotechne.detection_system.globalClass.security.AccessKeyHasher;
+import com.coelhotechne.detection_system.globalClass.security.IssuedAccessKeyResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CamAuthServiceImpl implements CamAuthService {
 
     private final CamRepository camRepository;
+    private final AccessKeyHasher hasher;
+    private final AccessKeyGenerator keyGenerator;
+    private final Clock clock;
 
     @Override
     @Transactional
     public CamAuthResponse authenticate(UUID camId, String presentedAccessKey) {
         Optional<BaseCam> maybeCam = camRepository.findById(camId);
-        if (maybeCam.isEmpty()) {
+        if (maybeCam.isEmpty()|| !hasher.matches(presentedAccessKey,maybeCam.get().getAccessKey())) {
             return new CamAuthResponse(camId, CamAuthMessage.NEGADO, null);
         }
-        BaseCam cam = maybeCam.get();
-        if (!matches(cam.getAccessKey(), presentedAccessKey)) {
-            return new CamAuthResponse(camId, CamAuthMessage.NEGADO, null);
-        }
-        Instant now = Instant.now();
-        cam.recordCommunication(now);
+        Instant now = clock.instant();
+        maybeCam.get().recordCommunication(now);
         return new CamAuthResponse(camId, CamAuthMessage.AUTORIZADO, now);
     }
 
@@ -45,14 +51,14 @@ public class CamAuthServiceImpl implements CamAuthService {
         }
     }
 
-    // Comparação em tempo constante — evita side-channel timing attack sobre a accessKey.
-    private boolean matches(String stored, String presented) {
-        if (stored == null || presented == null) {
-            return false;
-        }
-        return MessageDigest.isEqual(
-                stored.getBytes(StandardCharsets.UTF_8),
-                presented.getBytes(StandardCharsets.UTF_8)
-        );
+    @Override
+    public IssuedAccessKeyResponse issueAccessKey(UUID camId) {
+        BaseCam cam = camRepository.findById(camId).orElseThrow(()->
+                new CamNotFoundException(camId.toString(),"Camera not found!"));
+        boolean rotation = cam.getAccessKey()!=null;
+        String rawKey =keyGenerator.generate();
+        cam.issueAccessKey(hasher.hash(rawKey));
+        log.info("Access key {} for camera {} ",rotation ? "rotated" : "issued",camId);
+        return new IssuedAccessKeyResponse(camId,rawKey,clock.instant());
     }
 }
