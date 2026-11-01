@@ -1,6 +1,5 @@
 package com.coelhotechne.detection_system.detection.domain;
 
-import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 
