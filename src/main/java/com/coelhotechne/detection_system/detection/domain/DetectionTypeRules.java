@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.detection.domain;
 
+import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 
@@ -57,7 +58,8 @@ public final class DetectionTypeRules {
                 DetectionType.MOTION,
                 DetectionType.PRESENCE));
         rules.put(SensorNiche.HYDRAULIC,EnumSet.of(DetectionType.FLOOD,DetectionType.WATER_LEAK));
-        rules.put(SensorNiche.GAS,EnumSet.of(DetectionType.GAS_LEAK,DetectionType.TOXIC_GAS,DetectionType.OXYGEN_DEFICIENCY));
+        rules.put(SensorNiche.GAS,
+                EnumSet.of(DetectionType.GAS_LEAK,DetectionType.TOXIC_GAS,DetectionType.OXYGEN_DEFICIENCY));
         rules.put(SensorNiche.FIRE,EnumSet.of(
                 DetectionType.FIRE,DetectionType.SMOKE,DetectionType.HIGH_HEAT));
         rules.put(SensorNiche.STRUCTURAL,EnumSet.of(DetectionType.VIBRATION,DetectionType.IMPACT));
