@@ -58,8 +58,8 @@ public abstract class Detection extends BaseEntity {
     private boolean sourceHomologated;
 
     @Enumerated(EnumType.STRING)
-    @Column
-    public DetectionGasType gasType;
+    @Column(name = "gas_type",updatable = false,length = 33)
+    private DetectionGasType gasType;
 
     /** Exclusivo do JPA. */
     protected Detection() {
@@ -132,6 +132,10 @@ public abstract class Detection extends BaseEntity {
 
     public boolean isSourceHomologated() {
         return sourceHomologated;
+    }
+
+    protected void assignGasType(DetectionGasType gasType){
+        this.gasType=gasType;
     }
 
     /** Normaliza o valor da confianca de uma detecao por porcentagem */
