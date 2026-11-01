@@ -3,9 +3,9 @@ package com.coelhotechne.detection_system.detection.domain;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
+import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -49,10 +49,9 @@ public class SensorDetection extends Detection{
             BigDecimal measuredValue,
             String measuredUnit,
             String description
-    ){
+    ) {
         this(sourceEventId, sensor, detectionType, unmappedType, detectedAt, receivedAt, confidence,
                 measuredValue, measuredUnit, description, null);
-
     }
 
     public SensorDetection(
@@ -72,7 +71,7 @@ public class SensorDetection extends Detection{
                 DetectionDeviceType.SENSOR,
                 detectionType,
                 unmappedType,
-                Objects.requireNonNull(sensor,"Sensor is required").getZone(),
+                Objects.requireNonNull(sensor, "Sensor is required").getZone(),
                 detectedAt,
                 receivedAt,
                 confidence,
@@ -83,6 +82,17 @@ public class SensorDetection extends Detection{
                     "Detection type %s is not allowed for sensor niche %s"
                             .formatted(detectionType,sensor.getSensorNiche()));
         }
+        if (gasType!=null){
+            if (sensor.getSensorNiche()!=SensorNiche.GAS){
+                throw new IllegalArgumentException("Gas %s reported by sensor niche %s; only GAS sensors carry GAS"
+                        .formatted(gasType,sensor.getSensorNiche()));
+            }
+            if (gasType.detectionType()!=detectionType){
+                throw new IllegalArgumentException("Gas %s implies %s, but detection type is %s"
+                        .formatted(gasType,getGasType(),detectionType));
+            }
+        }
+
         this.sensor=sensor;
         this.measuredValue=measuredValue;
         this.measuredUnit=measuredValue == null ? null : truncate(measuredUnit,UNIT_MAX);
@@ -99,6 +109,7 @@ public class SensorDetection extends Detection{
 
     public String getMeasuredUnit(){return measuredUnit;}
     public DetectionGasType getGasType(){return gasType;}
+
     @Override
     public UUID getSourceId(){
         return sensor == null ? null : sensor.getUuid();
