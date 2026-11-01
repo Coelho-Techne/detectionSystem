@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.detection.domain;
 
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
+import com.coelhotechne.detection_system.detection.domain.enums.DetectionGasType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import jakarta.persistence.*;
@@ -15,7 +16,9 @@ import java.util.UUID;
 @Table(name = "sensor_detection",
         indexes = @Index(name = "idx_sensor_detection_sensor", columnList = "sensor_id"))
 public class SensorDetection extends Detection{
+
     public static final int UNIT_MAX = 16;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sensor_id", nullable = false, updatable = false)
     private Sensor sensor;
@@ -27,6 +30,10 @@ public class SensorDetection extends Detection{
     /** Unidade da leitura. Ex.: {@code ppm}. */
     @Column(name = "measured_unit", length = UNIT_MAX, updatable = false)
     private String measuredUnit;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gas_type",length = 40,updatable = false)
+    private DetectionGasType gasType;
 
     protected SensorDetection(){
     }
@@ -43,6 +50,24 @@ public class SensorDetection extends Detection{
             String measuredUnit,
             String description
     ){
+        this(sourceEventId, sensor, detectionType, unmappedType, detectedAt, receivedAt, confidence,
+                measuredValue, measuredUnit, description, null);
+
+    }
+
+    public SensorDetection(
+            UUID sourceEventId,
+            Sensor sensor,
+            DetectionType detectionType,
+            String unmappedType,
+            Instant detectedAt,
+            Instant receivedAt,
+            BigDecimal confidence,
+            BigDecimal measuredValue,
+            String measuredUnit,
+            String description,
+            DetectionGasType gasType
+    ){
         super(sourceEventId,
                 DetectionDeviceType.SENSOR,
                 detectionType,
@@ -56,11 +81,12 @@ public class SensorDetection extends Detection{
         if (!DetectionTypeRules.allowsSensor(sensor.getSensorNiche(),detectionType)){
             throw new IllegalArgumentException(
                     "Detection type %s is not allowed for sensor niche %s"
-                    .formatted(detectionType,sensor.getSensorNiche()));
+                            .formatted(detectionType,sensor.getSensorNiche()));
         }
         this.sensor=sensor;
         this.measuredValue=measuredValue;
         this.measuredUnit=measuredValue == null ? null : truncate(measuredUnit,UNIT_MAX);
+        this.gasType=gasType;
     }
 
     public Sensor getSensor(){
@@ -72,7 +98,7 @@ public class SensorDetection extends Detection{
     }
 
     public String getMeasuredUnit(){return measuredUnit;}
-
+    public DetectionGasType getGasType(){return gasType;}
     @Override
     public UUID getSourceId(){
         return sensor == null ? null : sensor.getUuid();
