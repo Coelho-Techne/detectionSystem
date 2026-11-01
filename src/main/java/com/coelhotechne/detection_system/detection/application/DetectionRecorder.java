@@ -190,7 +190,7 @@ public class DetectionRecorder {
 
 
     static Instant resolveDetectedAt(Instant reported,Instant recivedAt){
-        if (reported != null|| reported.isAfter(recivedAt.plus(MAX_FUTURE_SKEW))){
+        if (reported == null|| reported.isAfter(recivedAt.plus(MAX_FUTURE_SKEW))){
             return recivedAt;
         }
         return reported;
