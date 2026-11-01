@@ -1,7 +1,7 @@
 # Detection System — Documentação do Código
 
 > Documentação gerada a partir da leitura integral do código-fonte em 2026-09-25 (branch `master`, incluindo as alterações ainda não commitadas).
-> O código é sempre a fonte de verdade — atualize este arquivo conforme o projeto evoluir.
+> O código é sempre a fonte de verdade — atualize o seu arquivo conforme o projeto evoluir (caso tenha atualizações novas e você não baixou).
 > Caminhos de pacote são relativos a `src/main/java/com/coelhotechne/detection_system/`.
 
 ## Sumário
