@@ -91,8 +91,8 @@ public class DetectionRecorder {
         Sensor sensor = sensorRepository.findById(event.sensorId()).orElseThrow(()->
                 new SensorNotFoundException(event.sensorId().toString()," Sensor not found!"));
 
-        DetectionType type = DetectionType.fromCode(payload.category());
         DetectionGasType gasType = resolvGas(sensor,payload);
+        DetectionType type = resolveSensorType(payload.category(),gasType);
 
         if (type == DetectionType.UNKNOWN){
             log.info("Sensor {} (niche {}) reported unmapped detection type '{}' - recorded as UNKNOWN",
@@ -105,6 +105,8 @@ public class DetectionRecorder {
             return discard(DetectionDeviceType.SENSOR,type,DetectionOutcome.TYPE_NOT_ALLOWED,
                     "type %s not allowed for niche %s".formatted(type, sensor.getSensorNiche()));
         }
+        Instant receivedAt =event.occurredAt();
+        Instant detectedAt = DeviceClock.resolve(event.detectedAt(),receivedAt);
 
         SensorDetection detection;
         try{
@@ -113,12 +115,13 @@ public class DetectionRecorder {
                     sensor,
                     type,
                     payload.category(),
-                    event.detectedAt(),
-                    event.occurredAt(),
-                    payload.value(),
+                    detectedAt,
+                    receivedAt,
                     payload.confidence(),
+                    payload.value(),
                     payload.unit(),
-                    payload.description());
+                    payload.description(),
+                    gasType);
         }catch (IllegalArgumentException ex){
             log.warn("Invalid detection from sensor {}: {} - discarded",
                     sensor.getUuid(), ex.getMessage());
@@ -128,24 +131,24 @@ public class DetectionRecorder {
     }
 
     public DetectionRecordResult recordFromCamera(UUID camId,CamDetectionCommand command){
+        if (command.eventId() == null){
+            return discard(DetectionDeviceType.CAMERA,null,DetectionOutcome.INVALID,"eventId is required");
+        }
+        if (command.type() == null||command.type().isBlank()){
+            return discard(DetectionDeviceType.CAMERA,null,DetectionOutcome.INVALID,"Type is required");
+        }
+
         UUID sourceEventId = cameraSourceEventId(camId,command.eventId());
-
-        DetectionType type = DetectionType.fromCode(command.type());
-
         Optional<Detection>existing = repository.findBySourceEventId(sourceEventId);
 
         if (existing.isPresent()){
-            metrics.count(DetectionDeviceType.CAMERA,type,DetectionOutcome.DUPLICATE);
             return DetectionRecordResult.duplicate(existing.get());
         }
 
         BaseCam cam = camRepository.findById(camId)
                 .orElseThrow(()-> new CamNotFoundException(camId.toString()," Camera not found!"));
+        DetectionType type = DetectionType.fromCode(command.type());
 
-        if (command.type() == null || command.type().isBlank()){
-            return discard(DetectionDeviceType.CAMERA,null,
-                    DetectionOutcome.INVALID,"Type is required");
-        }
 
         if (!DetectionTypeRules.allowsCamera(type)){
             return discard(DetectionDeviceType.CAMERA,type,DetectionOutcome.TYPE_NOT_ALLOWED,
@@ -208,7 +211,9 @@ public class DetectionRecorder {
         DetectionGasType fromCategory = DetectionGasType.fromCode(payload.category());
         return fromCategory ==DetectionGasType.UNKNOWN ? null : fromCategory;
     }
-
+    static DetectionType resolveSensorType(String category, DetectionGasType gasType){
+        return gasType!=null ? gasType.detectionType() : DetectionType.fromCode(category);
+    }
     private DetectionRecordResult store(Detection detection){
         Detection saved = repository.save(detection);
         metrics.count(saved.getDeviceType(),saved.getType(),DetectionOutcome.STORED);
