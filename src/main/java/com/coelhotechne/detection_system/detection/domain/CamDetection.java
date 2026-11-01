@@ -18,6 +18,11 @@ import java.util.UUID;
                 @Index(name = "idx_cam_detection_track", columnList = "cam_id, track_id")
         })
 public class CamDetection extends Detection{
+
+    public static final int TAXON_MAX = 100;
+    public static final int SNAPSHOT_REF_MAX = 255;
+    public static final int MODEL_VERSION_MAX = 64;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "cam_id", nullable = false, updatable = false)
     private BaseCam cam;
@@ -30,24 +35,24 @@ public class CamDetection extends Detection{
     private Boolean moving;
 
     /** Espécie/subclasse quando houver (ex.: {@code tityus_serrulatus}). */
-    @Column(name = "taxon", updatable = false, length = 100)
+    @Column(name = "taxon", updatable = false, length = TAXON_MAX)
     private String taxon;
 
     @Embedded
     private BoundingBox bbox;
 
     /** Referência ao recorte em disco local. Imagem não trafega no MQTT nem fica no banco. */
-    @Column(name = "snapshot_ref", updatable = false, length = 255)
+    @Column(name = "snapshot_ref", updatable = false, length = SNAPSHOT_REF_MAX)
     private String snapshotRef;
 
-    @Column(name = "model_version", updatable = false, length = 64)
+    @Column(name = "model_version", updatable = false, length = MODEL_VERSION_MAX)
     private String modelVersion;
 
     /** Exclusivo do JPA. */
     protected CamDetection() {
     }
 
-    public CamDetection(UUID eventId,
+    public CamDetection(UUID sourceEventId,
                         BaseCam cam,
                         DetectionType type,
                         String unmappedType,
@@ -61,7 +66,7 @@ public class CamDetection extends Detection{
                         String snapshotRef,
                         String modelVersion
                              ){
-        super(eventId,
+        super(sourceEventId,
                 DetectionDeviceType.CAMERA,
                 type,
                 unmappedType,
