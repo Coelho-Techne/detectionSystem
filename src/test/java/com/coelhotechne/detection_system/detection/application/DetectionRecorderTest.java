@@ -17,7 +17,6 @@ import com.coelhotechne.detection_system.sensor.infrastructure.SensorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
