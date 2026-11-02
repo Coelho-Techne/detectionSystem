@@ -15,9 +15,6 @@ public record AlertSummaryResponse(
         List<ZoneTotal> byZone
 ) {
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ZoneTotal(UUID zoneId, Severity severity, long total) {
-    }
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ZoneTotalName(UUID zoneId, String zoneName, long total) {
+    public record ZoneTotal(UUID zoneId, String zoneName, long total) {
     }
 }
