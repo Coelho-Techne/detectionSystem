@@ -109,7 +109,7 @@ public interface AlertRepository extends JpaRepository<Alert, UUID>, JpaSpecific
     }
     interface ZoneCount{
         UUID getZoneId();
-        Severity getZoneName();
+        String getZoneName();
         long getTotal();
     }
 }
