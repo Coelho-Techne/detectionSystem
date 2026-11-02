@@ -8,7 +8,6 @@ import com.coelhotechne.detection_system.alert.domain.enums.Severity;
 import com.coelhotechne.detection_system.batterysupply.domain.PowerSupplyStatus;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
-import com.coelhotechne.detection_system.detection.domain.enums.GasHazard;
 import com.coelhotechne.detection_system.detection.event.DetectionRecordedEvent;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
@@ -25,20 +24,27 @@ import java.util.UUID;
 public final class AlertRules {
 
     private static final Set<DetectionType>LIFE_SAFETY= EnumSet.of(
-            DetectionType.FIRE, DetectionType.SMOKE, DetectionType.GAS_LEAK,
-            DetectionType.CARBON_MONOXIDE, DetectionType.FALL
+            DetectionType.FIRE,
+            DetectionType.SMOKE,
+            DetectionType.GAS_LEAK,
+            DetectionType.CARBON_MONOXIDE,
+            DetectionType.TOXIC_GAS,
+            DetectionType.OXYGEN_DEFICIENCY,
+            DetectionType.FALL
     );
     private static final Set<DetectionType>WATER = EnumSet.of(
             DetectionType.FLOOD,DetectionType.WATER_LEAK);
     private static final Set<DetectionType>INTRUSION = EnumSet.of(
-            DetectionType.GLASS_BREAK, DetectionType.DOOR_OPEN,DetectionType.WINDOW_OPEN,
-            DetectionType.PERSON,DetectionType.MOTION,DetectionType.PRESENCE
+            DetectionType.GLASS_BREAK,
+            DetectionType.DOOR_OPEN,
+            DetectionType.WINDOW_OPEN,
+            DetectionType.PERSON,
+            DetectionType.MOTION,
+            DetectionType.PRESENCE
     );
-
+    private static final Set<SensorNiche>LIFE_SAFETY_NICHES = EnumSet.of(SensorNiche.FIRE,SensorNiche.GAS);
     private static final Set<ZoneType> SENSITIVE_ZONES = EnumSet.of(
             ZoneType.PERIMETER, ZoneType.RESTRICTED,ZoneType.ENTRANCE);
-
-    private static final Set<SensorNiche>LIFE_SAFETY_NICHES = EnumSet.of(SensorNiche.FIRE,SensorNiche.GAS);
 
     private AlertRules(){
 
@@ -47,12 +53,9 @@ public final class AlertRules {
     public static AlertRuleOutcome forDetection(DetectionRecordedEvent event,
                                                 ZoneType zoneType,
                                                 boolean armed){
-
         AlertCategory category;
-
         AlertType type;
-
-        Severity severity = null;
+        Severity severity;
 
         if (LIFE_SAFETY.contains(event.type())){
             category = AlertCategory.DETECTION;
@@ -87,7 +90,7 @@ public final class AlertRules {
             severity = Severity.MEDIUM;
         }
     if (!event.sourceHomologated()){
-        severity = Severity.INFO;
+        severity = LIFE_SAFETY.contains(event.type()) ? Severity.HIGH : Severity.INFO;
     }
 
         AlertSourceType sourceType = AlertSourceType.of(event.deviceType());
@@ -204,7 +207,7 @@ public final class AlertRules {
                 event.measuredAt()));
     }
 
-    private static Severity thresholdSeverity(TelemetryMetric metric){
+    static Severity thresholdSeverity(TelemetryMetric metric){
         return switch (metric){
             case CO2, GAS_CONCENTRATION -> Severity.HIGH;
             case BATTERY_PERCENT, MEMORY_USED,DATA_TRANSFER,RSSI -> Severity.LOW;
