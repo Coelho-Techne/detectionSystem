@@ -2,7 +2,6 @@ package com.coelhotechne.detection_system.alert.config;
 
 import com.coelhotechne.detection_system.device.application.auth.DeviceAuthService;
 import com.coelhotechne.detection_system.security.application.CustomUserDetailsService;
-import com.coelhotechne.detection_system.security.domain.CustomUserDetails;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtTokenProvider;
 import com.coelhotechne.detection_system.security.exceptions.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +31,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
 
     private final JwtTokenProvider tokenProvider;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final CustomUserDetailsService detailsService;
     private final DeviceAuthService deviceAuthService;
 
     @Override
@@ -63,7 +62,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                     .map(claims -> claims.getSubject())
                     .orElseThrow(()-> new MessageDeliveryException("Invalid or expired token"));
             try {
-                UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                UserDetails userDetails = detailsService.loadUserByUsername(email);
                 if (!userDetails.isEnabled()){
                     throw new MessageDeliveryException("User disabled");
                 }
@@ -75,10 +74,10 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         String deviceIdHeader = accessor.getFirstNativeHeader("X-Device-Id");
-        String accesskey = accessor.getFirstNativeHeader("X-Access-Key");
-        if (deviceIdHeader!=null&&accesskey!=null){
+        String accessKey = accessor.getFirstNativeHeader("X-Access-Key");
+        if (deviceIdHeader!=null&&accessKey!=null){
             UUID deviceId = parseUuid(deviceIdHeader);
-            if (deviceId!=null&& deviceAuthService.isValidAccessKey(deviceId,accesskey)){
+            if (deviceId!=null&& deviceAuthService.isValidAccessKey(deviceId,accessKey)){
                 return UsernamePasswordAuthenticationToken.authenticated(
                         deviceId.toString(),null, List.of(new SimpleGrantedAuthority(DEVICE_AUTHORITY))
                 );
@@ -101,7 +100,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 .stream()
                 .anyMatch(a -> DEVICE_AUTHORITY.equals(a.getAuthority()));
         if (isDevice && !destination.equals("/topic/devices/"+ authentication.getName()+"/alerts")){
-            throw new MessageDeliveryException("A device can only subscribed to its own alerts");
+            throw new MessageDeliveryException("A device can only subscribe to its own alerts");
         }
     }
 
