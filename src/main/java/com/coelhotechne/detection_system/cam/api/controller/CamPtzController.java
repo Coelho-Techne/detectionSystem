@@ -1,8 +1,8 @@
 package com.coelhotechne.detection_system.cam.api.controller;
 
-import com.coelhotechne.detection_system.cam.api.ptz.CamPtzRequest;
-import com.coelhotechne.detection_system.cam.api.ptz.CamPtzResponse;
-import com.coelhotechne.detection_system.cam.api.ptz.PtzCommandRequest;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.CamPtzRequest;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.CamPtzResponse;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.PtzCommandRequest;
 import com.coelhotechne.detection_system.cam.application.ptz.CamPtzService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
