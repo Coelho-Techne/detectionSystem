@@ -15,6 +15,6 @@ public interface CamFixedService {
     Page<CamFixedResponse> findCamListPage(Pageable pageable);
     CamFixedResponse findCamId(UUID uuid);
     CamFixedResponse createCam(CamFixedRequest camFixedRequest);
-    CamFixedResponse updateCam(UUID uuid,CamFixedRequest camFixedRequest);
+    CamFixedResponse updateCam(UUID uuid, CamFixedRequest camFixedRequest);
     void deleteCam(UUID uuid);
 }
