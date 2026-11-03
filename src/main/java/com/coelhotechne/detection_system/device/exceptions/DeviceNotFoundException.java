@@ -1,9 +1,11 @@
 package com.coelhotechne.detection_system.device.exceptions;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.ErrorResponseException;
 
+@Getter
 public class DeviceNotFoundException extends ErrorResponseException {
     private final String deviceId;
     private final String deviceName;
