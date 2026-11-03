@@ -1,10 +1,8 @@
 package com.coelhotechne.detection_system.device.application.auth;
 
 import com.coelhotechne.detection_system.device.api.dto.auth.DeviceAuthResponse;
-import com.coelhotechne.detection_system.device.api.dto.auth.DeviceKeyGenerator;
 import com.coelhotechne.detection_system.device.domain.Device;
 import com.coelhotechne.detection_system.device.domain.enums.DeviceMessage;
-import com.coelhotechne.detection_system.device.exceptions.DeviceAuthenticationException;
 import com.coelhotechne.detection_system.device.exceptions.DeviceNotFoundException;
 import com.coelhotechne.detection_system.device.infrastructure.DeviceRepository;
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyGenerator;
