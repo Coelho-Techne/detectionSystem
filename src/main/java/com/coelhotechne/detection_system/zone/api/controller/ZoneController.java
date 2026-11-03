@@ -20,30 +20,34 @@ import java.util.UUID;
 @RequestMapping(value = "/api/v1/zone",produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class ZoneController {
+
     private final ZoneService service;
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize(ZoneAccess.READ)
+    @GetMapping
     public ResponseEntity<List<ZoneResponse>>findZoneList(){
         return ResponseEntity.status(HttpStatus.OK).body(service.findZoneList());
     }
-
-    @GetMapping(value = "/{id}",produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize(ZoneAccess.READ)
+    @GetMapping(value = "/{id}")
     public ResponseEntity<ZoneResponse>findZoneId(@PathVariable UUID id){
-        return ResponseEntity.status(HttpStatus.OK).body(service.findZoneId(id));
+        return ResponseEntity.ok(service.findZoneId(id));
     }
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+
+    @PreAuthorize(ZoneAccess.ONLY_ADM)
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ZoneResponse>createZone(@Valid @RequestBody ZoneRequest request){
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createZone(request));
     }
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping(value = "/{id}",produces = MediaType.APPLICATION_JSON_VALUE,consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize(ZoneAccess.ONLY_ADM)
+    @PutMapping(value = "/{id}",consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ZoneResponse>updateZone(@PathVariable UUID id,@Valid @RequestBody ZoneRequest request){
-        return ResponseEntity.status(HttpStatus.OK).body(service.updateZone(id,request));
+        return ResponseEntity.ok(service.updateZone(id,request));
     }
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize(ZoneAccess.ONLY_ADM)
     @DeleteMapping(value = "/{id}")
-    public ResponseEntity<ZoneResponse>deleteZone(@PathVariable UUID id){
-        return ResponseEntity.ok().body(service.deleteZone(id));
+    public ResponseEntity<Void>deleteZone(@PathVariable UUID id){
+        service.deleteZone(id);
+        return ResponseEntity.noContent().build();
     }
 }
