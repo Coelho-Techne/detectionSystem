@@ -1,17 +1,14 @@
 package com.coelhotechne.detection_system.zone.api.dto;
 
-import com.coelhotechne.detection_system.globalClass.mapper.GenericMapper;
 import com.coelhotechne.detection_system.zone.domain.Zone;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
 @Component
-public class ZoneMapper implements GenericMapper<Zone,ZoneResponse, ZoneRequest> {
-    @Override
-    public Zone toEntity(ZoneRequest request) {
+public class ZoneMapper  {
+    public Zone toEntity(Zone entity,ZoneRequest request) {
         Objects.requireNonNull(request,"Request cannot be null");
-        Zone entity = new Zone();
         entity.setName(request.name());
         entity.setDescription(request.description());
         entity.setZoneType(request.zoneType());
@@ -19,11 +16,9 @@ public class ZoneMapper implements GenericMapper<Zone,ZoneResponse, ZoneRequest>
         entity.setCenterLongitude(request.centerLongitude());
         entity.setRadiusMeters(request.radiusMeters());
         entity.setActive(request.active());
-        entity.setCreatedZoneAtDay(request.createdZoneAtDay());
         return entity;
     }
 
-    @Override
     public ZoneResponse toResponse(Zone entity) {
         return new ZoneResponse(
                 entity.getUuid(),
