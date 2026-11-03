@@ -13,5 +13,5 @@ public interface ZoneService {
     ZoneResponse findZoneId(UUID uuid);
     ZoneResponse createZone(ZoneRequest zoneRequest);
     ZoneResponse updateZone(UUID uuid, ZoneRequest zoneRequest);
-    ZoneResponse deleteZone(UUID uuid);
+    void deleteZone(UUID uuid);
 }
