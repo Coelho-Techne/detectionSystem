@@ -1,9 +1,9 @@
 package com.coelhotechne.detection_system.cam.application.ptz;
 
-import com.coelhotechne.detection_system.cam.api.ptz.CamPtzMapper;
-import com.coelhotechne.detection_system.cam.api.ptz.CamPtzRequest;
-import com.coelhotechne.detection_system.cam.api.ptz.CamPtzResponse;
-import com.coelhotechne.detection_system.cam.api.ptz.PtzCommandRequest;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.CamPtzMapper;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.CamPtzRequest;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.CamPtzResponse;
+import com.coelhotechne.detection_system.cam.api.dto.ptz.PtzCommandRequest;
 import com.coelhotechne.detection_system.cam.domain.ptz.CamPtz;
 import com.coelhotechne.detection_system.cam.domain.ptz.PtzCommandSender;
 import com.coelhotechne.detection_system.cam.exceptions.CamInvalidRequestException;
