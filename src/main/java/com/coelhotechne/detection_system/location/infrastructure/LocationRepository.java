@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface LocationRepository extends JpaRepository<Location, UUID> {
     Optional<Location>findById(UUID uuid);
+    long countByZoneUuid(UUID zoneId);
 }
