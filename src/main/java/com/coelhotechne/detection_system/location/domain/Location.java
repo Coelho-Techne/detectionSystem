@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.location.domain;
 
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
+import com.coelhotechne.detection_system.globalClass.exceptions.DomainInvariantViolationException;
 import com.coelhotechne.detection_system.zone.domain.Zone;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -35,7 +36,7 @@ public class Location extends BaseEntity {
     @PreUpdate
     private void validateZone() {
         if (zone == null) {
-            throw new IllegalStateException("Location must have an associated Zone");
+            throw new DomainInvariantViolationException("Location must have an associated Zone");
         }
     }
 }
