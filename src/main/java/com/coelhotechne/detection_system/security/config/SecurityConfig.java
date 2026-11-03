@@ -44,6 +44,7 @@ public class SecurityConfig {
 
     @Value("${springdoc.api-docs.enabled:true}")
     private boolean apiDocsEnabled;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -78,7 +79,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-                            .requestMatchers("/api/v1/cam/*/auth/", "/api/v1/sensor/*/auth/").permitAll()
+                            .requestMatchers(HttpMethod.POST,"/api/v1/cam/*/auth/", "/api/v1/sensor/*/auth/").permitAll()
+                            .requestMatchers(HttpMethod.POST,"/api/v1/device/*/authenticate").permitAll()
+                            .requestMatchers("/ws","/ws/**").permitAll()
+                            .requestMatchers(HttpMethod.GET,"/actuator/health","/actuator/health/**").permitAll()
                             .requestMatchers("/api/v1/cam/*/homologation/**", "/api/v1/sensor/*/homologation/**")
                             .hasAnyRole(Role.TECHNICIAN.name(), Role.ADMIN.name());
 
