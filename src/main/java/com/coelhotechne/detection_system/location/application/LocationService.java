@@ -13,5 +13,5 @@ public interface LocationService {
     LocationResponse findLocationId(UUID uuid);
     LocationResponse createLocation(LocationRequest locationRequest);
     LocationResponse updateLocation(UUID uuid, LocationRequest locationRequest);
-    LocationResponse deleteLocation(UUID uuid);
+    void deleteLocation(UUID uuid);
 }
