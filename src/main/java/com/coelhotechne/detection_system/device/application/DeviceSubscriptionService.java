@@ -4,7 +4,6 @@ import com.coelhotechne.detection_system.device.api.dto.DeviceSubscriptionReques
 import com.coelhotechne.detection_system.device.api.dto.DeviceSubscriptionResponse;
 import com.coelhotechne.detection_system.device.domain.Device;
 import com.coelhotechne.detection_system.device.domain.DeviceAlertSubscription;
-import com.coelhotechne.detection_system.device.exceptions.DeviceNotFoundException;
 import com.coelhotechne.detection_system.device.exceptions.DeviceSubscriptionNotFoundException;
 import com.coelhotechne.detection_system.device.infrastructure.DeviceAlertSubscriptionRepository;
 import com.coelhotechne.detection_system.zone.application.ZoneService;
