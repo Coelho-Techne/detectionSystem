@@ -48,15 +48,12 @@ public class DeviceAlertSubscription extends BaseEntity {
     public Device getDevice(){
         return device;
     }
-
     public Zone getZone(){
         return zone;
     }
-
     public Severity getMinSeverity(){
         return minSeverity;
     }
-
     public boolean isActive() {
         return active;
     }
