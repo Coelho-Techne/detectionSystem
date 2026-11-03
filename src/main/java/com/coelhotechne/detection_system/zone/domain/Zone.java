@@ -2,16 +2,11 @@ package com.coelhotechne.detection_system.zone.domain;
 
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
 import com.coelhotechne.detection_system.zone.domain.enums.ZoneType;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import tools.jackson.databind.annotation.JsonDeserialize;
-import tools.jackson.databind.annotation.JsonSerialize;
-import tools.jackson.databind.ext.javatime.deser.LocalDateDeserializer;
-import tools.jackson.databind.ext.javatime.ser.LocalDateSerializer;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,8 +36,6 @@ public class Zone extends BaseEntity {
     private Double radiusMeters;
     @Column(nullable = false)
     private Boolean active = true;
-    @JsonFormat(shape = JsonFormat.Shape.STRING,pattern = "dd/MM/yyyy HH:mm:ss")
-    @JsonSerialize(using = LocalDateSerializer.class)
-    @JsonDeserialize(using = LocalDateDeserializer.class)
+    @Column(name = "created_zone_at_day")
     private LocalDate createdZoneAtDay;
 }
