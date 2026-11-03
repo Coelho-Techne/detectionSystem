@@ -5,22 +5,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.ErrorResponseException;
 
+import java.util.UUID;
+
 @Getter
 public class UserNotFoundException extends ErrorResponseException {
-    private final String userId;
-    private final String username;
+    private final UUID userId;
 
-    public UserNotFoundException(String userId,String username, String message){
-        super(HttpStatus.NOT_FOUND,buildProblemDetail(userId,username,message),null);
+    public UserNotFoundException(UUID userId, String message){
+        super(HttpStatus.NOT_FOUND,buildProblemDetail(userId,message),null);
         this.userId=userId;
-        this.username=username;
     }
 
-    private static ProblemDetail buildProblemDetail(String userId,String username,String message){
+    private static ProblemDetail buildProblemDetail(UUID userId,String message){
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND,message);
         pd.setTitle("User Not Found");
         pd.setProperty("userId",userId);
-        pd.setProperty("username",username);
         return pd;
     }
 }
