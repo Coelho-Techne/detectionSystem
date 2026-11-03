@@ -20,7 +20,6 @@ import java.util.UUID;
 
 @RestController
 @Tag(name = "CamFixed")
-@CrossOrigin(origins = "http://localhost:5173") // ou o IP/host da UI em produção
 @RequestMapping(value = "/api/v1/cam-fixed",produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class CamFixedController {
@@ -29,14 +28,14 @@ public class CamFixedController {
 
     @Operation(summary = "Lista câmeras fixas cadastradas, paginado")
     @PreAuthorize(CamAccess.READ)
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping()
     public ResponseEntity<Page<CamFixedResponse>> findCamFixedPageList(Pageable pageable) {
-        return ResponseEntity.ok(service.findCamList(pageable));
+        return ResponseEntity.ok(service.findCamListPage(pageable));
     }
 
     @Operation(summary = "Lista câmeras fixas cadastradas")
     @PreAuthorize(CamAccess.READ)
-    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/all")
     public ResponseEntity<List<CamFixedResponse>>findCamFixedList(){
         return ResponseEntity.status(HttpStatus.OK).body(service.findCamList());
     }
@@ -62,7 +61,8 @@ public class CamFixedController {
     @Operation(summary = "Remove o cadastro de uma câmera fixa")
     @PreAuthorize(CamAccess.ONLY_ADM)
     @DeleteMapping(value = "/{id}")
-    public ResponseEntity<CamFixedResponse>deleteCamFixed(@PathVariable UUID id){
-        return ResponseEntity.status(HttpStatus.OK).body(service.deleteCam(id));
+    public ResponseEntity<Void>deleteCamFixed(@PathVariable UUID id){
+        service.deleteCam(id);
+        return ResponseEntity.noContent().build();
     }
 }
