@@ -31,29 +31,9 @@ public record LocationResponse(
         UUID zoneUuid,
         String createdBy,
         String lastModifiedBy,
-        @JsonFormat(
-                pattern = "dd/MM/yyyy HH:mm:ss",
-                shape = JsonFormat.Shape.STRING
-        )
+        @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss", shape = JsonFormat.Shape.STRING)
         LocalDateTime createdAt,
-        @JsonFormat(
-                pattern = "dd/MM/yyyy HH:mm:ss",
-                shape = JsonFormat.Shape.STRING
-        )
+        @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss", shape = JsonFormat.Shape.STRING)
         LocalDateTime updatedAt
 ) {
-
-    public static LocationResponse toResponse(Location location) {
-        return new LocationResponse(
-                location.getUuid(),
-                location.getName(),
-                location.getLatitude(),
-                location.getLongitude(),
-                location.getZone().getUuid(),
-                location.getCreatedBy(),
-                location.getLastModifiedBy(),
-                location.getCreatedAt(),
-                location.getUpdatedAt()
-        );
-    }
 }
