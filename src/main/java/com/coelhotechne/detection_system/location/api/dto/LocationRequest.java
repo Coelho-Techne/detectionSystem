@@ -1,7 +1,5 @@
 package com.coelhotechne.detection_system.location.api.dto;
 
-import com.coelhotechne.detection_system.location.domain.Location;
-import com.coelhotechne.detection_system.zone.domain.Zone;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import tools.jackson.databind.PropertyNamingStrategies;
@@ -21,13 +19,4 @@ public record LocationRequest(
         @NotNull
         UUID zoneUuid
 ) {
-
-    public static Location toEntity(LocationRequest request, Zone zone) {
-        return new Location(
-                request.name(),
-                request.latitude(),
-                request.longitude(),
-                zone
-        );
-    }
 }
