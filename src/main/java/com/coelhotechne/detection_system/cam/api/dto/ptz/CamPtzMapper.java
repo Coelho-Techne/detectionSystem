@@ -1,4 +1,4 @@
-package com.coelhotechne.detection_system.cam.api.ptz;
+package com.coelhotechne.detection_system.cam.api.dto.ptz;
 
 import com.coelhotechne.detection_system.cam.api.dto.BaseCamData;
 import com.coelhotechne.detection_system.cam.api.dto.fixed.CamConnectionSummary;

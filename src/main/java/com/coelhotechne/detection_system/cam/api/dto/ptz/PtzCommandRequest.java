@@ -1,4 +1,4 @@
-package com.coelhotechne.detection_system.cam.api.ptz;
+package com.coelhotechne.detection_system.cam.api.dto.ptz;
 
 import com.coelhotechne.detection_system.cam.domain.ptz.enums.PtzAction;
 import jakarta.validation.constraints.NotNull;
