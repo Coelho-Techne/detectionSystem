@@ -11,6 +11,7 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -21,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 @Log4j2
 public class MqttSensorClient implements MqttCallbackExtended{
-    private static final long RETRY_SECONDS=10;
+    private static final int COMMAND_QOS = 1 ;
     private static final String[] EVENT_TOPICS = {
             "home/+/+/detection",
             "home/+/+/status",
@@ -29,28 +30,35 @@ public class MqttSensorClient implements MqttCallbackExtended{
             "home/+/+/selftest-afk"
     }; // status | telemetry | detection
     private static final int[] EVENT_QOS = {1, 1, 1, 1};
-    private static final int COMMAND_QOS = 1 ;
 
     private final MqttClient client;
+    private final MqttConnectOptions options;
     private final SensorEventHandler eventHandler;
     private final TaskScheduler scheduler;
     private final MqttIngestionMetrics metrics;
     private final ThreadPoolExecutor ingestion;
+    private final boolean enabled;
+    private final Duration retryDelay;
 
     private volatile boolean subscriptionHealthy;
     private volatile long lastMessageAtMillis;
+    private volatile boolean stopping;
 
     public MqttSensorClient (
         MqttClient client,
+        MqttConnectOptions options,
         SensorEventHandler eventHandler,
         TaskScheduler scheduler,
         MqttIngestionMetrics metrics,
         SensorMqttProperties properties
     ){
         this.client = client;
+        this.options = options;
         this.eventHandler = eventHandler;
         this.scheduler = scheduler;
         this.metrics = metrics;
+        this.enabled = properties.enabled();
+        this.retryDelay=properties.reconnectDelay();
         AtomicInteger counter = new AtomicInteger();
         this.ingestion = new ThreadPoolExecutor(
                 properties.ingestionThreads(),
@@ -70,34 +78,56 @@ public class MqttSensorClient implements MqttCallbackExtended{
     @EventListener(ApplicationReadyEvent.class)
     public void start(){
         client.setCallback(this);
+        if (!enabled){
+            log.warn("MQTT disabled (sensor.mqtt.enabled=false): no sensor events will be received");
+            return;
+        }
         tryConnection();
     }
     public  void stop() throws InterruptedException{
+        stopping =true;
+        try {
+            if (client.isConnected()){
+                client.disconnect(5_000);
+            }
+        }catch (MqttException ex){
+            log.warn("MQTT disconnect failed: ",ex);
+        }
         ingestion.shutdown();
-        if (!ingestion.awaitTermination(10,TimeUnit.SECONDS));
-        log.warn("MQTT ingestion pool did not drain in 10s; {} message(s) dropped",ingestion.getQueue());
-        ingestion.shutdownNow();
+        if (!ingestion.awaitTermination(10,TimeUnit.SECONDS)){
+            log.warn("MQTT ingestion pool did not drain in 10s; {} message(s) dropped",ingestion.getQueue());
+            ingestion.shutdownNow();
+        }
+        try {
+            client.close();
+        }catch (MqttException ex){
+            log.debug("MQTT client close failed",ex);
+        }
     }
+
     private void tryConnection() {
+        if (stopping){
+            return;
+        }
     try {
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setAutomaticReconnect(true);
-        options.setCleanSession(false);
-        options.setConnectionTimeout(10);
         client.connect(options);
-    }catch (MqttException e){
-        log.warn("MQTT broker unavailable retrying in {}s",RETRY_SECONDS,e);
-        scheduler.schedule(this::tryConnection, Instant.now().plusSeconds(RETRY_SECONDS));
-    }
+    }catch (MqttException ex){
+        log.warn("MQTT broker unavailable ({}) retrying in {}s",ex.getMessage(),retryDelay.toSeconds());
+        scheduler.schedule(this::tryConnection, Instant.now().plus(retryDelay));
+        }
     }
     private void subscribe(){
+        if (stopping){
+            return;
+        }
         try {
             client.subscribe(EVENT_TOPICS,EVENT_QOS);
             subscriptionHealthy = true;
             log.info("Subscribed to {}",String.join(", ",EVENT_TOPICS));
-        }catch (MqttException e){
-            log.error("Failed to subscribe; retrying in {}s",RETRY_SECONDS,e);
-            scheduler.schedule(this::subscribe,Instant.now().plusSeconds(RETRY_SECONDS));
+        }catch (MqttException ex){
+            subscriptionHealthy=true;
+            log.error("Failed to subscribe; retrying in {}s; error: {}",retryDelay.toSeconds(),ex);
+            scheduler.schedule(this::subscribe,Instant.now().plus(retryDelay));
         }
     }
     // :::::::::::::::::::::::::: MQTT Extend Patch ::::::::::::::::::::::::::
@@ -125,9 +155,9 @@ public class MqttSensorClient implements MqttCallbackExtended{
         Throwable failure = null;
         try {
             eventHandler.handle(topic,payload);
-        }catch (RuntimeException e ){
-            failure = e;
-            log.error("Failed to process message on {}",topic,e);
+        }catch (RuntimeException ex){
+            failure = ex;
+            log.error("Failed to process message on {}",topic,ex);
         }finally {
             metrics.record(sample,MqttIngestionMetrics.topicType(topic),failure);
         }
