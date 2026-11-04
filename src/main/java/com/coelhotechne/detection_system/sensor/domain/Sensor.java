@@ -2,6 +2,7 @@ package com.coelhotechne.detection_system.sensor.domain;
 
 import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
 import com.coelhotechne.detection_system.globalClass.entities.BaseEntity;
+import com.coelhotechne.detection_system.globalClass.exceptions.DomainInvariantViolationException;
 import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.homologation.SensorHomologationRecord;
@@ -76,7 +77,7 @@ public class Sensor extends BaseEntity {
     private Instant lastReadingAt;
     @Embedded
     @AttributeOverrides({
-            @AttributeOverride(name = "status",      column = @Column(name = "installation_status", length = 20)),
+            @AttributeOverride(name = "installationStatus",      column = @Column(name = "installation_status", length = 20)),
             @AttributeOverride(name = "installedAt", column = @Column(name = "installation_installed_at"))
     })
     @EqualsAndHashCode.Exclude
@@ -118,7 +119,7 @@ public class Sensor extends BaseEntity {
     @PreUpdate
     private void validateInvariants(){
     if (name==null||!TOPIC_SAFE_NAME.matcher(name).matches()){
-        throw new IllegalArgumentException("The sensor name is invalid for use with the MQTT topic:'"+name+"'");
+        throw new DomainInvariantViolationException("The sensor name is invalid for use with the MQTT topic:'"+name+"'");
     }
     }
 
