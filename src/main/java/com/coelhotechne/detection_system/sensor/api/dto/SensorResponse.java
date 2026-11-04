@@ -2,6 +2,7 @@ package com.coelhotechne.detection_system.sensor.api.dto;
 
 
 import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
+import com.coelhotechne.detection_system.installation.api.dto.InstallationResponse;
 import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
@@ -17,10 +18,23 @@ import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonPropertyOrder({
-        "uuid", "name", "sensorNiche", "status", "activationTime", "memoryUsed",
-        "dataTransferValue", "dataDescription", "lastReadingAt", "installation",
-        "zoneUuid", "powerSupply", "version", "createdBy", "lastModifiedBy",
-        "createdAt", "updatedAt"
+        "uuid",
+        "name",
+        "sensorNiche",
+        "status",
+        "activationTime",
+        "memoryUsed",
+        "dataTransferValue",
+        "dataDescription",
+        "lastReadingAt",
+        "installation",
+        "zoneUuid",
+        "powerSupply",
+        "version",
+        "createdBy",
+        "lastModifiedBy",
+        "createdAt",
+        "updatedAt"
 })
 public record SensorResponse(
         UUID uuid,
@@ -33,7 +47,7 @@ public record SensorResponse(
         BigDecimal dataTransferValue,
         String dataDescription,
         Instant lastReadingAt,
-        Installation installation,
+        InstallationResponse installation,
         UUID zoneUuid,
         PowerSupply powerSupply,
         Long version,
