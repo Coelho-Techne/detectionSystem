@@ -5,6 +5,8 @@ import com.coelhotechne.detection_system.sensor.exceptions.SensorEventParseExcep
 import com.coelhotechne.detection_system.sensor.exceptions.SensorNotFoundException;
 import com.coelhotechne.detection_system.sensor.exceptions.UnsupportedSensorEventException;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.OptimisticLockException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import io.micrometer.core.instrument.Timer;
 
@@ -13,6 +15,7 @@ import java.util.concurrent.BlockingQueue;
 
 @Component
 public class MqttIngestionMetrics {
+
     private final MeterRegistry registry;
 
     public MqttIngestionMetrics (MeterRegistry registry){
@@ -20,7 +23,7 @@ public class MqttIngestionMetrics {
     }
 
     public  void bindQueue(BlockingQueue<?> queue){
-        registry.gauge("detection.mqtt,queue.size",queue,BlockingQueue::size);
+        registry.gauge("detection.mqtt,queue.size", queue, BlockingQueue::size);
     }
 
     public Timer.Sample start(){
@@ -41,7 +44,8 @@ public class MqttIngestionMetrics {
         if (failure instanceof SensorEventParseException)return "parse_error";
         if (failure instanceof SensorNotFoundException)return "unknown_sensor";
         if (failure instanceof UnsupportedSensorEventException)return "unsupported";
-        if (failure instanceof UnsupportedSensorEventException || failure instanceof SensorConcurrentModificationException)return "conflict";
+        if (failure instanceof OptimisticLockingFailureException ||
+                failure instanceof SensorConcurrentModificationException)return "conflict";
         return "error";
     }
 
