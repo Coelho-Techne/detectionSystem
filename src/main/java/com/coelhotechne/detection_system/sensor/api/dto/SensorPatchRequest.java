@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.sensor.api.dto;
 
-import com.coelhotechne.detection_system.installation.domain.Installation;
+import com.coelhotechne.detection_system.installation.api.dto.InstallationRequest;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -18,7 +19,8 @@ public record SensorPatchRequest(
         String name,
         @Size(min = 1, max = 255, message = "data_description cannot be null")
         String dataDescription,
-        Installation installation,
+        @Valid
+        InstallationRequest installation,
         UUID zoneUUID
 )
 {
