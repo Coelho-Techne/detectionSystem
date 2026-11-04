@@ -22,24 +22,52 @@ import java.time.Duration;
  */
 @ConfigurationProperties(prefix = "sensor.mqtt")
 public record SensorMqttProperties (
-    String brokerUrl,
-    String clientId,
-    String username,
-    String password,
-    Boolean cleanSession,
-    String persistenceDir,
-    Boolean uniqueClientIdSuffix,
-    Integer ingestionThreads,
-    Integer ingestionQueueCapacity,
-    Duration reconnectDelay
+        Boolean enabled,
+        String brokerUrl,
+        String clientId,
+        String username,
+        String password,
+        Boolean cleanSession,
+        String persistenceDir,
+        Boolean uniqueClientIdSuffix,
+        Integer ingestionThreads,
+        Integer ingestionQueueCapacity,
+        Duration reconnectDelay,
+        Duration connectionTimeout,
+        Duration keepAlive
 ) {
+    public static final String MEMORY_PERSISTENCE = "memory";
     public SensorMqttProperties {
+            enabled = enabled != null ? enabled : Boolean.TRUE;
+            brokerUrl = brokerUrl != null && !brokerUrl.isBlank() ? brokerUrl : "tcp://localhost:1883";
+            clientId = clientId != null  && !clientId.isBlank() ? clientId : "detection-system";
             cleanSession = cleanSession != null ? cleanSession : Boolean.FALSE;
             uniqueClientIdSuffix = uniqueClientIdSuffix != null ? uniqueClientIdSuffix : Boolean.FALSE;
             persistenceDir = persistenceDir != null ? persistenceDir : "./mqtt-persistence";
             ingestionThreads = ingestionThreads != null ? ingestionThreads : 4;
             ingestionQueueCapacity = ingestionQueueCapacity != null ? ingestionQueueCapacity : 5_000;
             reconnectDelay = reconnectDelay != null ? reconnectDelay : Duration.ofSeconds(5);
+            connectionTimeout = connectionTimeout != null ? connectionTimeout : Duration.ofSeconds(10);
+            keepAlive = keepAlive != null ? keepAlive : Duration.ofSeconds(60);
+            if (ingestionThreads<1){
+                throw new IllegalArgumentException("sensor.mqtt.ingestion-threads must be >=1");
+            }
+            if (ingestionQueueCapacity<1){
+                throw new IllegalArgumentException("sensor.mqtt.ingestion-queue-capacity must be >=1");
+            }
         }
+
+        public boolean hasCredentials(){
+        return username != null && ! username.isBlank();
+        }
+        public boolean usesMemoryPersistence(){
+        return MEMORY_PERSISTENCE.equalsIgnoreCase(persistenceDir);
+        }
+
+        @Override
+        public String toString(){
+        return "SensorMqttProperties[brokerUrl=%s, clientId=%s, username=%s, cleanSession=%s, enabled=%s]"
+                .formatted(brokerUrl, clientId, username, cleanSession, enabled);
+    }
 
 }
