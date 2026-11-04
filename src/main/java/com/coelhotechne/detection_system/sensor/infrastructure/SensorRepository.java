@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SensorRepository extends JpaRepository<Sensor, UUID> {
-    Optional<Sensor> findByName(String name);
     @EntityGraph(attributePaths = "zone")
     Optional<Sensor>findByNameAndZoneName(String sensorName, String zoneName);
     Long countByZoneUuid(UUID uuid);
@@ -34,6 +33,7 @@ public interface SensorRepository extends JpaRepository<Sensor, UUID> {
             select s from Sensor s
             where s.sensorStatus <> :disconnected
               and (s.lastReadingAt is null or s.lastReadingAt < :threshold)
+              and (s.lastCommunication is null or s.lastCommunication < :threshold)
             """)
     List<Sensor> findStaleSensors(@Param("threshold") Instant threshold,
                                   @Param("disconnected") SensorStatus disconnected);
