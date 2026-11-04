@@ -8,7 +8,8 @@ public sealed interface SensorEvent permits
         SensorStatusReportedEvent,
         SensorStatusEvent,
         SensorTelemetryEvent,
-        SensorPowerSupplyEvent
+        SensorPowerSupplyEvent,
+        SensorSelfTestResultEvent
 {
     UUID eventId();
     UUID sensorId();
