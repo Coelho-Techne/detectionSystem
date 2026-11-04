@@ -9,7 +9,7 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record SensorSelfTestCommandPayload (
         String command,
-        UUID requestId, // o firmware precisa devolver este valor no ack
-        Instant inssuedAt
+        UUID requestId,
+        Instant issuedAt
 ){
 }
