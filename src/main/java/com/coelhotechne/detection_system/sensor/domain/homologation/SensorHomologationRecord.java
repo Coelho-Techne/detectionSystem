@@ -106,7 +106,21 @@ public class SensorHomologationRecord {
         return true;
     }
 
-    //criar uma classe de loop de test por tempo determinado pelo usuario
+    public boolean cancelPendingTest(){
+        return abortTest(pendingRequestId);
+    }
+
+    public void reopen(){
+        requireStatus(status == SensorHomologationStatus.APPROVED
+                || status == SensorHomologationStatus.REJECTED,"Reopen");
+        status = SensorHomologationStatus.PENDING_TEST;
+        decidedBy =null;
+        decidedAt = null;
+        rejectionReason = null;
+        testFailure = null;
+        testFailureDetail = null;
+        testOutput = null;
+    }
 
     private void requireStatus(boolean allowed, String action) {
         if (!allowed) {
