@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.sensor.api.dto;
 
 import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
+import com.coelhotechne.detection_system.installation.api.dto.InstallationRequest;
 import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import jakarta.validation.Valid;
@@ -29,7 +30,8 @@ public record SensorRequest(
         @NotNull
         UUID zoneUUID,
         @NotNull
-        Installation installation,
+        @Valid
+        InstallationRequest installation,
         @Valid
         PowerSupply powerSupply
 ) {
