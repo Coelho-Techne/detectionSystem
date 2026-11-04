@@ -10,12 +10,17 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MqttHealthIndicator implements HealthIndicator {
     private final MqttSensorClient client;
+    private final SensorMqttProperties properties;
 
     @Value("${sensor.mqtt.max-silence-seconds:300}")
     private long maxSilenceSeconds;
 
     @Override
     public Health health() {
+        if (!properties.enabled()){
+            return Health.unknown().withDetail("enabled",false).build();
+        }
+
         long silence = client.secondsSinceLastMessage();
 
         Health.Builder builder = (client.isConnected()
