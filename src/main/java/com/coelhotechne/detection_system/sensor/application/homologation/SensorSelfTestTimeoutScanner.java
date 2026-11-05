@@ -1,8 +1,6 @@
 package com.coelhotechne.detection_system.sensor.application.homologation;
 
-import com.coelhotechne.detection_system.sensor.domain.Sensor;
-import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
-import com.coelhotechne.detection_system.sensor.domain.homologation.SensorSelfTestOutcome;
+
 import com.coelhotechne.detection_system.sensor.domain.homologation.enums.SensorHomologationStatus;
 import com.coelhotechne.detection_system.sensor.infrastructure.SensorRepository;
 import lombok.extern.log4j.Log4j2;
@@ -10,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,7 +30,6 @@ public class SensorSelfTestTimeoutScanner {
         this.homologationService=homologationService;
     }
     @Scheduled(fixedDelayString = "${sensor.homologation.scan-interval-ms:15000}")
-    @Transactional
     public void expireOverdueSelfTests(){
         Instant now = Instant.now();
         List<UUID> overdue =repository
