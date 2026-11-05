@@ -5,6 +5,7 @@ import com.coelhotechne.detection_system.sensor.api.dto.SensorMapper;
 import com.coelhotechne.detection_system.sensor.api.dto.homologation.SensorHomologationResponse;
 import com.coelhotechne.detection_system.sensor.application.homologation.SensorHomologationService;
 import com.coelhotechne.detection_system.sensor.api.dto.homologation.SensorHomologationDecisionRequest;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
+@Tag(name = "Sensor homologation")
 @RequestMapping("/api/v1/sensor/{sensorId}/homologation")
 @RequiredArgsConstructor
 public class SensorHomologationController {
@@ -40,6 +42,14 @@ public class SensorHomologationController {
         return ResponseEntity.ok(mapper
                 .toHomologationResponse(homologationService.approve(sensorId, authentication.getName())));
     }
+    @PreAuthorize(SensorAccess.TEST)
+    @PostMapping("/cancel")
+    public ResponseEntity<SensorHomologationResponse>cancel(@PathVariable UUID sensorId,
+                                                            Authentication authentication){
+        return ResponseEntity.ok(mapper
+                .toHomologationResponse(homologationService
+                        .cancelSelfTest(sensorId,authentication.getName())));
+    }
 
     @PostMapping("/reject")
     @PreAuthorize(SensorAccess.DECISION)
@@ -48,5 +58,13 @@ public class SensorHomologationController {
                                                         Authentication authentication) {
         return ResponseEntity.ok(mapper
                 .toHomologationResponse(homologationService.reject(sensorId, authentication.getName(), request.reason())));
+    }
+    @PreAuthorize(SensorAccess.DECISION)
+    @PostMapping("/reopen")
+    public ResponseEntity<SensorHomologationResponse>reopen(@PathVariable UUID sensorId,
+                                                            Authentication authentication){
+        return ResponseEntity.ok(mapper
+                .toHomologationResponse(homologationService
+                        .reopen(sensorId,authentication.getName())));
     }
 }
