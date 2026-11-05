@@ -2,6 +2,8 @@ package com.coelhotechne.detection_system.sensor.api.dto;
 
 
 import com.coelhotechne.detection_system.globalClass.mapper.GenericMapper;
+import com.coelhotechne.detection_system.installation.api.dto.InstallationResponse;
+import com.coelhotechne.detection_system.installation.domain.Installation;
 import com.coelhotechne.detection_system.sensor.api.dto.homologation.SensorHomologationResponse;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.homologation.SensorHomologationRecord;
@@ -24,24 +26,23 @@ public class SensorMapper implements GenericMapper<Sensor, SensorResponse, Senso
         entity.setSensorNiche(request.sensorNiche());
         entity.setDataDescription(request.dataDescription());
         entity.setPowerSupply(request.powerSupply());
-        entity.setInstallation(request.installation());
         return entity;
     }
-    public void applyReplace(Sensor entity, SensorReplaceRequest request, Zone zone) {
+    public void applyReplace(Sensor entity, SensorReplaceRequest request, Zone zone, Installation installation) {
         Objects.requireNonNull(request, "Request cannot be null");
         Objects.requireNonNull(zone, "Zone cannot be null");
 
         entity.setName(request.name());
         entity.setDataDescription(request.dataDescription());
-        entity.setInstallation(request.installation());
+        entity.setInstallation(installation);
         entity.setZone(zone);
     }
 
-    public void applyPatch(Sensor entity, SensorPatchRequest patch, Zone resolvedZone) {
+    public void applyPatch(Sensor entity, SensorPatchRequest patch, Zone resolvedZone,Installation installation) {
         Objects.requireNonNull(patch, "Patch cannot be null");
         if (patch.name() != null)entity.setName(patch.name());
         if (patch.dataDescription() != null)entity.setDataDescription(patch.dataDescription());
-        if (patch.installation() != null)entity.setInstallation(patch.installation());
+        if (patch.installation() != null)entity.setInstallation(installation);
         if (patch.zoneUUID() != null)entity.setZone(resolvedZone);
     }
 
@@ -74,7 +75,7 @@ public class SensorMapper implements GenericMapper<Sensor, SensorResponse, Senso
                 entity.getDataTransferValue(),
                 entity.getDataDescription(),
                 entity.getLastReadingAt(),
-                entity.getInstallation(),
+                InstallationResponse.from(entity.getInstallation()),
                 zoneUuid,
                 entity.getPowerSupply(),
                 entity.getVersion(),
