@@ -1,9 +1,7 @@
 package com.coelhotechne.detection_system.alert.application;
 
 import com.coelhotechne.detection_system.alert.domain.AlertDecision;
-import com.coelhotechne.detection_system.alert.domain.enums.AlertCategory;
-import com.coelhotechne.detection_system.alert.domain.enums.AlertType;
-import com.coelhotechne.detection_system.alert.domain.enums.Severity;
+import com.coelhotechne.detection_system.alert.domain.enums.*;
 import com.coelhotechne.detection_system.batterysupply.domain.PowerSupplyStatus;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionDeviceType;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
@@ -21,8 +19,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +27,7 @@ class AlertRulesTest {
 
     private static final Instant T0 = Instant.parse("2026-10-27T17:00:00Z");
     private static final UUID SOURCE = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    private static final UUID ZONE = UUID.fromString("11111111-2222-2222-2222-222222222222");
+    private static final UUID ZONE = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     private static DetectionRecordedEvent detection(DetectionType type, DetectionDeviceType deviceType,
                                                     Long trackId, boolean homologated){
@@ -69,8 +65,11 @@ class AlertRulesTest {
 
     @Test
     void unknownIsInfoAnomaly(){
-        AlertDecision d = AlertRules.forDetection(detection(DetectionType.UNKNOWN,DetectionDeviceType.SENSOR,
-                null, false),null,true).raise();
+        AlertDecision d = AlertRules.forDetection(detection(
+                DetectionType.UNKNOWN,
+                DetectionDeviceType.SENSOR,
+                null,
+                true),null,true).raise();
 
         assertThat(d.type()).isEqualTo(AlertType.ANOMALY_DETECTED);
         assertThat(d.severity()).isEqualTo(Severity.INFO);
@@ -78,9 +77,21 @@ class AlertRulesTest {
     @Test
     void nonHomologatedSourceIsDowngraded(){
         AlertDecision d =AlertRules.forDetection(
-                detection(DetectionType.FIRE,DetectionDeviceType.SENSOR,null,false),null,true
+                detection(DetectionType.MOTION,DetectionDeviceType.SENSOR,null,false),null,true
         ).raise();
         assertThat(d.severity()).isEqualTo(Severity.INFO);
+    }
+    @Test
+    void nonHomologatedLifeSafetyStaysHigh(){
+        AlertDecision decision = AlertRules.forDetection(
+                detection(
+                        DetectionType.FIRE,
+                        DetectionDeviceType.SENSOR,
+                        null,
+                        false
+                ),null,true
+        ).raise();
+        assertThat(decision.severity()).isEqualTo(Severity.HIGH);
     }
     @Test
     void cameraKeyIsPerTrack(){
@@ -90,7 +101,7 @@ class AlertRulesTest {
         String b = AlertRules.forDetection(
                 detection(DetectionType.PERSON,DetectionDeviceType.CAMERA,2L,true),
                 null,true).raise().dedupKey();
-        assertThat(a).isNotEqualTo(b).startsWith("CAMERA");
+        assertThat(a).isNotEqualTo(b).startsWith("CAMERA:");
     }
 
     @Test
@@ -121,20 +132,15 @@ class AlertRulesTest {
         assertThat(presence.raise().severity()).isEqualTo(Severity.MEDIUM);
     }
 
-    //configurado com equalTo devido a falta do metodo containsExactlyInAnyOrder
     @Test
     void backToOkClearsStateAndConnectionAlerts(){
         SensorStatusEvent e =new SensorStatusEvent(
                 UUID.randomUUID(),SOURCE,SensorStatus.DISCONNECTED,SensorStatus.OK,T0
         );
-        List<String>expectedList = new ArrayList<>(List.of("SENSOR"+SOURCE+
-                "STATE_CHANGED"));
-         List<String>expectedList2 = new ArrayList<>(List.of("SENSOR"+SOURCE+" : CONNECTION_LOST"));
-
         AlertRuleOutcome outcome = AlertRules.forSensorStatus(e,SensorNiche.FIRE,ZONE);
         assertThat(outcome.raise()).isNull();
-        assertThat(outcome.clearPrefixes()).containsExactlyInAnyOrder(expectedList.toString(),
-                expectedList2.toString());
+        assertThat(outcome.clearPrefixes()).containsExactlyInAnyOrder(
+                "SENSOR:" + SOURCE + ":STATE_CHANGED", "SENSOR:" + SOURCE + ":CONNECTION_LOST");
     }
     //configurado com equalTo devido a falta do metodo containsExactly
     @Test
@@ -143,16 +149,16 @@ class AlertRulesTest {
                 UUID.randomUUID(),
                 SOURCE, PowerSupplyStatus.LOW,PowerSupplyStatus.CRITICAL,T0
         );
-        List<String>expectedList = new ArrayList<>(List.of("SENSOR"+SOURCE+
-                "RESOURCE_LOW"));
+
         AlertRuleOutcome outcome = AlertRules.forPower(e,ZONE);
-        assertThat(outcome.clearPrefixes()).containsExactly(expectedList.toString());
+        assertThat(outcome.clearPrefixes()).containsExactly(
+                "SENSOR:" + SOURCE + ":RESOURCE_LOW");
         assertThat(outcome.raise().severity()).isEqualTo(Severity.HIGH);
     }
     @Test
     void batteryChargingOnlyClears(){
         SensorPowerSupplyEvent e = new SensorPowerSupplyEvent(UUID.randomUUID(),
-                SOURCE, PowerSupplyStatus.LOW,PowerSupplyStatus.CRITICAL,T0);
+                SOURCE, PowerSupplyStatus.CRITICAL,PowerSupplyStatus.CHARGING,T0);
        assertThat(AlertRules.forPower(e,ZONE).raise()).isNull();
     }
     @Test
