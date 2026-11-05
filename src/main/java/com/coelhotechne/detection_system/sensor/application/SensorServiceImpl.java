@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.sensor.application;
 
+import com.coelhotechne.detection_system.installation.application.InstallationResolver;
 import com.coelhotechne.detection_system.sensor.api.dto.*;
 import com.coelhotechne.detection_system.sensor.application.event.SensorEventProcessor;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
@@ -33,6 +34,7 @@ public class SensorServiceImpl implements SensorService {
     private final ZoneService zoneService;
     private final MqttSensorClient mqttSensorClient;
     private final SensorEventProcessor eventProcessor;
+    private final InstallationResolver installationResolver;
 
     @Override
     public Sensor requireSensor(UUID sensorId) {
@@ -69,7 +71,8 @@ public class SensorServiceImpl implements SensorService {
         requireVersion(sensor, expectedVersion);
 
         Zone zone = zoneService.requireZone(request.zoneUUID());
-        mapper.applyReplace(sensor, request, zone);
+        mapper.applyReplace(sensor, request,
+                zone,installationResolver.resolve(request.installation()));
         return saveOrConflict(sensor, uuid);
     }
 
@@ -80,7 +83,7 @@ public class SensorServiceImpl implements SensorService {
         Zone zone = zoneService.requireZone(sensorRequest.zoneUUID());
         entity.setActivationTime(LocalDateTime.now());
         entity.setLastCommunication(Instant.now());
-        entity.setInstallation(sensorRequest.installation());
+        entity.setInstallation(installationResolver.resolve(sensorRequest.installation()));
         entity.setZone(zone);
         Sensor created = repository.save(entity);
         return mapper.toResponse(created);
@@ -97,7 +100,7 @@ public class SensorServiceImpl implements SensorService {
         requireVersion(sensor, expectedVersion);
 
         Zone zone = patch.zoneUUID() == null ? null : zoneService.requireZone(patch.zoneUUID());
-        mapper.applyPatch(sensor, patch, zone);
+        mapper.applyPatch(sensor, patch, zone,installationResolver.resolve(patch.installation()));
         return saveOrConflict(sensor, uuid);
     }
 
@@ -170,6 +173,10 @@ public class SensorServiceImpl implements SensorService {
     @Override
     public void sendCommand(UUID uuid, SensorCommand sensorCommand) {
         Objects.requireNonNull(sensorCommand,"Command cannot be null");
+        if (sensorCommand == SensorCommand.SELF_TEST){
+            throw new SensorCommandNotAllowedException(uuid,sensorCommand,
+                    "Use POST /api/v1/sensor/{id}/homologation/test to run the self-test");
+        }
         Sensor sensor = requireSensor(uuid);
         if (sensor.getZone() == null) {
             throw new SensorWithoutZoneException(uuid.toString(), "Zone from id: " + uuid + " not found!");
