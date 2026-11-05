@@ -1,10 +1,12 @@
 package com.coelhotechne.detection_system.sensor.api.controller;
 
+import com.coelhotechne.detection_system.globalClass.security.IssuedAccessKeyResponse;
 import com.coelhotechne.detection_system.sensor.api.dto.SensorPatchRequest;
 import com.coelhotechne.detection_system.sensor.api.dto.SensorReplaceRequest;
 import com.coelhotechne.detection_system.sensor.api.dto.SensorRequest;
 import com.coelhotechne.detection_system.sensor.api.dto.SensorResponse;
 import com.coelhotechne.detection_system.sensor.application.SensorService;
+import com.coelhotechne.detection_system.sensor.application.auth.SensorAuthService;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorCommand;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorPreconditionFailedException;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +32,7 @@ import java.util.UUID;
 public class SensorController {
 
     private final SensorService service;
+    private final SensorAuthService authService;
 
     @PreAuthorize(SensorAccess.READ)
     @GetMapping
@@ -98,6 +101,13 @@ public class SensorController {
     public ResponseEntity<Void> deleteSensor(@PathVariable UUID id) {
         service.deleteSensor(id);
         return ResponseEntity.noContent().build();
+    }
+    @PreAuthorize(SensorAccess.TEST)
+    @PostMapping("/{id}/access-key")
+    public ResponseEntity<IssuedAccessKeyResponse>issueAccessKey(@PathVariable UUID id){
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.CACHE_CONTROL,"no-store")
+                .body(authService.issueAccessKey(id));
     }
 
     @PreAuthorize(SensorAccess.WRITE)
