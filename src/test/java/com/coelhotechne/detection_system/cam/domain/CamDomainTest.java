@@ -78,7 +78,6 @@ class CamDomainTest {
                 .isInstanceOf(IllegalArgumentException.class);
         camPtz.applyCommand(PtzAction.STOP,null,T0);
         assertThat(camPtz.getMoving()).isFalse();
-        assertThat(camPtz.getMoving()).isFalse();
         assertThat(camPtz.getLastPtzCommand()).isEqualTo("STOP");
     }
 }
