@@ -4,7 +4,6 @@ import com.coelhotechne.detection_system.batterysupply.domain.PowerSupply;
 import com.coelhotechne.detection_system.batterysupply.domain.PowerSupplyThresholds;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.SensorDiagnosticsThresholds;
-import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
 import com.coelhotechne.detection_system.sensor.event.*;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorConcurrentModificationException;
@@ -17,9 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -47,6 +43,8 @@ public class SensorEventApplier {
             applyTelemetry(e);
         } else if (sensorEvent instanceof SensorStatusReportedEvent e) {
             applyReportedStatus(e);
+        }else if (sensorEvent instanceof SensorSelfTestResultEvent e){
+            applySelfTestResult(e);
         } else if (sensorEvent instanceof SensorDetectionEvent e) {
             applyDetection(e);
         } else if (sensorEvent instanceof SensorStatusEvent e) {
@@ -66,7 +64,7 @@ public class SensorEventApplier {
                 thresholds);
 
         PowerSupply.PowerOutcome power= applyPowerReading(sensor,event);
-        if (!outcome.persist() && !power.persist()) {
+        if (outcome.persist() || power.persist()) {
             Sensor saved = saveOrConflict(sensor);
             publishStatusChangeIfAny(saved.getUuid(), outcome.previousStatus(),
                     saved.getSensorStatus(), event.occurredAt());
@@ -107,6 +105,20 @@ public class SensorEventApplier {
         Sensor sensor = requireSensor(event.sensorId());
         sensor.touchCommunication(event.occurredAt());
         eventPublisher.publishEvent(event);
+    }
+    private void applySelfTestResult(SensorSelfTestResultEvent event){
+        Sensor sensor = requireSensor(event.sensorId());
+        sensor.touchCommunication(event.occurredAt());
+        boolean applied  = sensor.getHomologation()
+                .applyTestResult(event.requestId(),event.outcome(),event.occurredAt());
+        if (!applied){
+            log.info("Sel-test response {} from sensor {} ignores (no matching pending test, status: {})"
+            ,event.requestId(),sensor.getUuid(),sensor.getHomologation().getStatus());
+            return;
+        }
+        saveOrConflict(sensor);
+        log.info("Self-test {} of sensor {} finished: {}",event.requestId(),sensor.getUuid(),
+                event.outcome().success() ? "passed":"failed ("+event.outcome().failure()+")");
     }
 
     private void applyReportedStatus(SensorStatusReportedEvent event) {
