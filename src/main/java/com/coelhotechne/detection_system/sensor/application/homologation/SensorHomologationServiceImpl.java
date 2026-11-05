@@ -4,7 +4,6 @@ import com.coelhotechne.detection_system.sensor.application.SensorService;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
 import com.coelhotechne.detection_system.sensor.domain.homologation.SensorHomologationRecord;
-import com.coelhotechne.detection_system.sensor.domain.homologation.SensorSelfTestOutcome;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorCommandDeliveryException;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorHomologationNotEligibleException;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorWithoutAccessKey;
@@ -62,27 +61,33 @@ public class SensorHomologationServiceImpl implements SensorHomologationService{
                     .findById(sensorId)
                     .ifPresent(s -> s.getHomologation().abortTest(requestId)));
 
-        }catch (RuntimeException abortFailuer){
-            e.addSuppressed(abortFailuer);
+        }catch (RuntimeException abortFailure){
+            e.addSuppressed(abortFailure);
         }
         throw  e;
     }
-    log.info("Self-test {} dispatched to sensor {} ",requestId,sensorId);
+    log.info("Self-test {} dispatched to sensor {}", requestId, sensorId);
     return started.homologationRecord();
     }
 
     @Override
     @Transactional
-    public boolean applySelfTestAck(UUID sensorId, UUID requestId,SensorSelfTestOutcome outcome){
-        return repository.findById(sensorId).map(s -> s.getHomologation()
-                .applyTestResult(requestId,outcome,now())).orElse(false);
+    public SensorHomologationRecord cancelSelfTest(UUID sensorId, String cancelledBy) {
+        Sensor sensor = service.requireSensor(sensorId);
+        if (!sensor.getHomologation().cancelPendingTest()){
+            throw new SensorHomologationNotEligibleException(sensorId,
+                    "No self-test in progress (status :"+sensor.getHomologation().getStatus()+" )");
+        }
+        log.info("Self-test of sensor {} cancelled by {}",sensor,cancelledBy);
+        return sensor.getHomologation();
     }
+
     @Override
     @Transactional
     public SensorHomologationRecord approve(UUID sensorId, String approvedBy){
     Sensor sensor = service.requireSensor(sensorId);
     transition(sensorId,() -> sensor.getHomologation().approve(approvedBy,now()));
-    log.info("Sensor {} homologation approved by {}", sensorId, approvedBy);
+    log.info("Sensor {} homologation approved by: {}", sensorId, approvedBy);
         return sensor.getHomologation();
     }
 
@@ -91,8 +96,19 @@ public class SensorHomologationServiceImpl implements SensorHomologationService{
     public SensorHomologationRecord reject(UUID sensorId, String rejectedBy, String reason) {
         Sensor sensor = service.requireSensor(sensorId);
         transition(sensorId,() -> sensor.getHomologation().reject(rejectedBy,reason,now()));
-        log.info("Sensor {} homologation approved by {}", sensorId, rejectedBy);
+        log.info("Sensor {} homologation rejected by: {}", sensorId, rejectedBy);
         return sensor.getHomologation();
+    }
+
+    @Override
+    @Transactional
+    public SensorHomologationRecord reopen(UUID sensorId, String reopenedBy) {
+        Sensor sensor = service.requireSensor(sensorId);
+        SensorHomologationRecord record = sensor.getHomologation();
+        var previous = record.getStatus();
+        transition(sensorId,record::reopen);
+        log.info("Sensor {} homologation reopened by {} (was {})", sensorId, reopenedBy, previous);
+        return record;
     }
 
     @Override
@@ -105,7 +121,8 @@ public class SensorHomologationServiceImpl implements SensorHomologationService{
 
     private void requireEligibleForTest(Sensor sensor) {
         if (sensor.getAccessKey() == null){
-            throw new SensorWithoutAccessKey(sensor.getUuid(),"Sensor has no access key issued");
+            throw new SensorWithoutAccessKey(sensor.getUuid()
+                    ,"Sensor has no access key issued (POST /api/v1/sensor/{%s}/access-key)".formatted(sensor.getUuid()));
         }if (sensor.getSensorStatus() == SensorStatus.MAINTENANCE_REQUIRED){
             throw new SensorHomologationNotEligibleException(sensor.getUuid(), "Sensor is under maintenance");
         }
