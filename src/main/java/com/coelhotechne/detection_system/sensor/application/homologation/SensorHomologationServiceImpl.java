@@ -78,7 +78,7 @@ public class SensorHomologationServiceImpl implements SensorHomologationService{
             throw new SensorHomologationNotEligibleException(sensorId,
                     "No self-test in progress (status :"+sensor.getHomologation().getStatus()+" )");
         }
-        log.info("Self-test of sensor {} cancelled by {}",sensor,cancelledBy);
+        log.info("Self-test of sensor {} cancelled by {}",sensorId,cancelledBy);
         return sensor.getHomologation();
     }
 
