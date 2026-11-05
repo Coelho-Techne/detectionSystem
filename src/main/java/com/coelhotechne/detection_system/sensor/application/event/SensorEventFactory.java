@@ -4,6 +4,7 @@ import com.coelhotechne.detection_system.globalClass.time.DeviceClock;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorTelemetryPayload;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorDetectionPayload;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorStatusPayload;
+import com.coelhotechne.detection_system.sensor.domain.payload.SensorSelfTestPayload;
 import com.coelhotechne.detection_system.sensor.event.*;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorEventParseException;
 import com.coelhotechne.detection_system.sensor.exceptions.UnsupportedSensorEventException;
@@ -31,6 +32,7 @@ public class SensorEventFactory {
                 case "detection" -> createDetection(topic.sensorId(), payload);
                 case "status" -> createStatus(topic.sensorId(), payload);
                 case "telemetry" -> createTelemetry(topic.sensorId(), payload);
+                case "selftest"-> createSelfTest(topic.sensorId(),payload);
                 default -> throw new UnsupportedSensorEventException(topic.eventType());
             };
         } catch (JacksonException e) {
@@ -41,13 +43,13 @@ public class SensorEventFactory {
 
     private SensorDetectionEvent createDetection(UUID sensorId, String payload) {
         SensorDetectionPayload detection = objectMapper.readValue(payload, SensorDetectionPayload.class);
-        Instant recivedAt = clock.instant();
+        Instant receivedAt = clock.instant();
         return new SensorDetectionEvent(
                 detectionEventId(sensorId,detection),
                 sensorId,
                 detection,
-                recivedAt,
-                DeviceClock.resolve(detection.detectedAt(),recivedAt)
+                receivedAt,
+                DeviceClock.resolve(detection.detectedAt(),receivedAt)
         );
     }
 
@@ -59,8 +61,29 @@ public class SensorEventFactory {
     private SensorTelemetryEvent createTelemetry(UUID sensorId, String payload) {
         SensorTelemetryPayload telemetry = objectMapper.readValue(payload, SensorTelemetryPayload.class);
         Instant receivedAt = clock.instant();
-        UUID eventId = telemetry.msgId() != null ? nameUuid(sensorId+ "|" + telemetry.msgId()):UUID.randomUUID();
-        return new SensorTelemetryEvent(UUID.randomUUID(), sensorId, telemetry,DeviceClock.resolve(telemetry.measuredAt(),receivedAt),receivedAt );
+        UUID eventId = telemetry.msgId() != null
+                ? nameUuid(sensorId+ "|" + telemetry.msgId())
+                : UUID.randomUUID();
+        return new SensorTelemetryEvent(
+                eventId,
+                sensorId,
+                telemetry,
+                DeviceClock.resolve(telemetry.measuredAt(),receivedAt),
+                receivedAt );
+    }
+
+    private SensorSelfTestResultEvent createSelfTest(UUID sensorId, String payload){
+        SensorSelfTestPayload result = objectMapper.readValue(payload,SensorSelfTestPayload.class);
+        if (!result.hasRequestId()){
+            throw new SensorEventParseException("Self-test response without 'request_id'",null);
+        }
+        return new SensorSelfTestResultEvent(
+                nameUuid(sensorId+"|selftest|"+result.requestId()),
+                sensorId,
+                result.requestId(),
+                result.toOutcome(),
+                clock.instant()
+        );
     }
 
     static UUID detectionEventId(UUID sensorId,SensorDetectionPayload payload){
