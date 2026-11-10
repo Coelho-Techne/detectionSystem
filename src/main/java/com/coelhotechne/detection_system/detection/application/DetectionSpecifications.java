@@ -26,6 +26,9 @@ final class DetectionSpecifications {
             if (filter.deviceType()!=null){
                 predicates.add(criteriaBuilder.equal(root.get("deviceType"),filter.deviceType()));
             }
+            if (filter.type()!=null){
+                predicates.add(criteriaBuilder.equal(root.get("type"),filter.type()));
+            }
             if (filter.from()!=null){
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("detectedAt"),filter.from()));
             }
