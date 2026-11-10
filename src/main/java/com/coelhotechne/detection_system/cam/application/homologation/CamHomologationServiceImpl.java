@@ -57,7 +57,6 @@ public class CamHomologationServiceImpl implements CamHomologationService {
     }
 
     @Override
-    @Transactional
     public CamHomologationRecord runConnectionTest(UUID camId) {
         CamConnectionProfile connection = template.execute(status -> {
             BaseCam cam = findOrThrow(camId);
