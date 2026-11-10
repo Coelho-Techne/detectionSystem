@@ -80,7 +80,7 @@ public class CamPtz extends BaseCam {
         if (value == null){
             throw new IllegalArgumentException(axis+" value is required");
         }
-        if ((min!=null && value<=min) || (max!=null && value> max)){
+        if ((min!=null && value<min) || (max!=null && value> max)){
             throw new IllegalArgumentException("%s %s outside the configured limits [%s %s]".formatted(axis,value,min,max));
         }
         return value;
