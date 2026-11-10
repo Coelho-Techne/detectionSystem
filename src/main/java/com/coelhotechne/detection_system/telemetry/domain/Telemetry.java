@@ -57,7 +57,7 @@ public class Telemetry extends BaseEntity {
     private Instant receivedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "source_message_id",updatable = false)
+    @Column(name = "source",updatable = false,nullable = false,length = 20)
     private TelemetrySource source;
 
     @Column(name = "source_message_id",updatable = false)
