@@ -29,6 +29,6 @@ public class StompAlertChannel implements AlertChannel {
     @Override
     public void deliver(AlertNotification notification, List<Device> recipients) {
     messaging.ifAvailable(m -> recipients.forEach(device ->
-            m.convertAndSend("/topic/devices"+device.getUuid()+"/alerts",notification)));
+            m.convertAndSend("/topic/devices/"+device.getUuid()+"/alerts",notification)));
     }
 }
