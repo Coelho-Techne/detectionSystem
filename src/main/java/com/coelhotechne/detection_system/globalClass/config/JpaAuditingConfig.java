@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.globalClass.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.domain.AuditorAware;
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class JpaAuditingConfig {
     static final String SYSTEM = "system";
 
+    @Bean
     public AuditorAware<String>auditorAware(){
         return ()->{
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -26,7 +28,7 @@ public class JpaAuditingConfig {
             return Optional.ofNullable(auth.getName()).or(()-> Optional.of(SYSTEM));
         };
     }
-
+    @Bean
     public DateTimeProvider auditingDateTimeProvider(Clock clock){
         return () -> Optional.of(LocalDateTime.now(clock));
     }
