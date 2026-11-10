@@ -152,7 +152,7 @@ public class BaseCam extends BaseEntity {
     public void configureCamConnection(CamProtocol protocol, CamConnectionParams params) {
         switch (protocol) {
             case RTSP, NATIVE -> {
-                if (params.streamUri() == null) {
+                if (params.streamUri() == null||params.streamUri().isBlank()) {
                     throw new IllegalArgumentException("Stream Uri is required for the protocol: " + protocol);
                 }
             }
