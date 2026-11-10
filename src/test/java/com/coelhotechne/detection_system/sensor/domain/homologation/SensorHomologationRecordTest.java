@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SensorHomologationRecordTest {
-    private static final Instant TO = Instant.parse("2026-11-08T21:20:00");
+    private static final Instant TO = Instant.parse("2026-11-08T21:20:00Z");
 
     @Test
     void happyPathToApproval(){
@@ -47,6 +47,7 @@ class SensorHomologationRecordTest {
     void cancelUnlockAStuckTest(){
         SensorHomologationRecord r = new SensorHomologationRecord();
         UUID req = UUID.randomUUID();
+        r.startTest(req,TO);
         assertThat(r.cancelPendingTest()).isTrue();
         assertThat(r.getStatus()).isEqualTo(SensorHomologationStatus.PENDING_TEST);
 
@@ -61,6 +62,9 @@ class SensorHomologationRecordTest {
         record.applyTestResult(req,SensorSelfTestOutcome.passed("ok"),TO);
         record.reject("admin","cabo solto",TO);
         assertThatThrownBy(()-> record.startTest(UUID.randomUUID(),TO)).isInstanceOf(IllegalStateException.class);
+        record.reopen();
+        assertThat(record.getStatus()).isEqualTo(SensorHomologationStatus.PENDING_TEST);
+        assertThat(record.getRejectionReason()).isNull();
         record.startTest(UUID.randomUUID(),TO);
     }
     @Test
