@@ -20,9 +20,9 @@ public class AdminBootstrap implements ApplicationRunner {
 
     public AdminBootstrap(UserRepository repository,
                           UserService service,
-                          @Value("${app.bootstrap.admin-email}")
+                          @Value("${app.bootstrap.admin-email:}")
                           String email,
-                          @Value("${app.bootstrap.admin-password}")
+                          @Value("${app.bootstrap.admin-password:}")
                           String password){
         this.repository = repository;
         this.service = service;
