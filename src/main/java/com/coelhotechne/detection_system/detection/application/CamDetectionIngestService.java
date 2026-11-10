@@ -15,7 +15,7 @@ public class CamDetectionIngestService {
     private final DetectionRecorder recorder;
     private final DetectionMapper mapper;
 
-    public record Outcome(DetectionOutcome outcome, DetectionResponse response,String reason){
+    public record Outcome(DetectionOutcome outcome, DetectionResponse detection,String reason){
     }
     @Transactional
     public Outcome ingest(UUID camId,CamDetectionCommand command){
