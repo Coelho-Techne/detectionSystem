@@ -47,6 +47,7 @@ public class CamHomologationRecord {
     }
 
     public void applyTestResult(CamConnectionTestOutcome outcome,Instant now) {
+        requireTestable();
         this.lastTestedAt = now;
         if (outcome.success()) {
             this.status = CamHomologationStatus.PENDING_APPROVAL;
