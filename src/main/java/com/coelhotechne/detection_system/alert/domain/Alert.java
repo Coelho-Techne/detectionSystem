@@ -17,7 +17,8 @@ import java.util.UUID;
                 @Index(name = "idx_alert_status_severity",columnList = "status, severity, last_occurred_at"),
                 @Index(name = "idx_alert_zone_occurred",columnList = "zone_id, first_occurred_at"),
                 @Index(name = "idx_alert_source",columnList = "source_type, source_id")
-        })
+        },
+            uniqueConstraints = @UniqueConstraint(name = "uk_alert_open_dedup",columnNames ="open_dedup_key"))
 public class Alert extends BaseEntity {
 
     public static final int TITLE_MAX = 120;
@@ -57,13 +58,15 @@ public class Alert extends BaseEntity {
     @Column(name = "title",nullable = false,length = TITLE_MAX)
     private String title;
 
-    @Column(name = "description",length = TITLE_MAX)
+    @Column(name = "description",length = TEXT_MAX)
     private String description;
 
     @Column(name = "dedup_key",nullable = false,length = DEDUP_KEY_MAX,updatable = false)
     private String dedupKey;
-
-    @Column(name = "open_dedup_key",length = DEDUP_KEY_MAX,insertable = false,updatable = false)
+    // Compatibilidade apenas com hibernate
+    @Column(name = "open_dedup_key",insertable = false,updatable = false,
+    columnDefinition = "varchar("+DEDUP_KEY_MAX+") generated always as "+
+            "(case when status in ('TRIGGERED','ACKNOWLEDGED') then dedup-key end")
     private String openDedupKey;
 
     @Column(name = "ocurrence_count",nullable = false)
@@ -98,8 +101,8 @@ public class Alert extends BaseEntity {
         Objects.requireNonNull(decision,"decision is required");
         this.category = decision.category();
         this.type = decision.type();
-        this.category = decision.category();
-        this.type = decision.type();
+        this.status = AlertStatus.TRIGGERED;
+        this.occurrenceCount = 1;
         this.severity = decision.severity();
         this.sourceType = decision.sourceType();
         this.sourceId = decision.sourceId();
@@ -138,14 +141,14 @@ public class Alert extends BaseEntity {
 
     private void requireOpen(String action){
         if (!status.isOpen()){
-            throw new IllegalArgumentException("Cannot %s an alert in status %s"
+            throw new IllegalStateException("Cannot %s an alert in status %s"
                     .formatted(action,status));
         }
     }
 
     private void requireStatus(AlertStatus expected, String action){
         if (status!=expected){
-            throw new IllegalArgumentException("Cannot %s an alert in status %s"
+            throw new IllegalStateException("Cannot %s an alert in status %s"
                     .formatted(action,status));
         }
     }
