@@ -65,6 +65,7 @@ public final class DetectionTypeRules {
         rules.put(SensorNiche.HEALTH,EnumSet.of(DetectionType.FALL));
         rules.put(SensorNiche.AIR_QUALITY,EnumSet.of(DetectionType.CARBON_MONOXIDE,DetectionType.SMOKE,DetectionType.AIR_HUMIDITY));
         rules.put(SensorNiche.VEHICLE, EnumSet.of(DetectionType.VEHICLE, DetectionType.MOTION, DetectionType.PRESENCE));
+        rules.put(SensorNiche.ANIMAL,EnumSet.of(DetectionType.ANIMAL,DetectionType.MOTION,DetectionType.PRESENCE));
         rules.put(SensorNiche.ENVIRONMENT, EnumSet.of(DetectionType.HIGH_HEAT));
         rules.put(SensorNiche.SOUND, EnumSet.of(DetectionType.GLASS_BREAK));
         rules.replaceAll((sensorNiche,
