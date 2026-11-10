@@ -59,7 +59,7 @@ public class AlertServiceImpl implements AlertService {
         requireVersion(alert,expectedVersion);
         try {
             alert.acknowledge(user,clock.instant());
-        }catch (IllegalArgumentException e){
+        }catch (IllegalStateException e){
             throw new AlertTransitionNotAllowedException(id,alert.getStatus(),"acknowledge");
         }
         Alert saved = repository.saveAndFlush(alert);
@@ -69,6 +69,7 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
+    @Transactional
     public AlertResponse resolve(UUID id, String user, String note, Long expectedVersion) {
         Alert alert = requireId(id);
         requireVersion(alert, expectedVersion);
