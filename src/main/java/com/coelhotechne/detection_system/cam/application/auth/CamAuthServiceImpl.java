@@ -14,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -52,6 +50,7 @@ public class CamAuthServiceImpl implements CamAuthService {
     }
 
     @Override
+    @Transactional
     public IssuedAccessKeyResponse issueAccessKey(UUID camId) {
         BaseCam cam = camRepository.findById(camId).orElseThrow(()->
                 new CamNotFoundException(camId.toString(),"Camera not found!"));
