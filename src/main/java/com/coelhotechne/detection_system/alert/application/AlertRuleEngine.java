@@ -10,10 +10,11 @@ import com.coelhotechne.detection_system.zone.domain.Zone;
 import com.coelhotechne.detection_system.zone.domain.enums.ZoneType;
 import com.coelhotechne.detection_system.zone.infrastructure.ZoneRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -27,8 +28,8 @@ public class AlertRuleEngine {
     private final SensorRepository sensorRepository;
     private final ZoneArmingPolicy armingPolicy;
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT,fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onDetection(DetectionRecordedEvent event){
         ZoneType zoneType = Optional.ofNullable(event.zoneId())
                 .flatMap(zoneRepository::findById)
@@ -37,22 +38,22 @@ public class AlertRuleEngine {
         boolean armed = armingPolicy.isArmed(event.zoneId(),event.detectedAt());
         writer.apply(AlertRules.forDetection(event,zoneType,armed));
     }
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT,fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onSensorStatus(SensorStatusEvent event){
         Optional<Sensor> sensor = sensorRepository.findById(event.sensorId());
         writer.apply(AlertRules.forSensorStatus(event,
                 sensor.map(Sensor::getSensorNiche).orElse(null),
                 sensor.map(AlertRuleEngine::zoneIdOf).orElse(null)));
     }
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT,fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onPowerSupply(SensorPowerSupplyEvent event){
         UUID zoneId=sensorRepository.findById(event.sensorId()).map(AlertRuleEngine::zoneIdOf).orElse(null);
         writer.apply(AlertRules.forPower(event,zoneId));
     }
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT,fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public  void onThreshold(TelemetryThresholdEvent event){
         writer.apply(AlertRules.forThreshold(event));
     }
