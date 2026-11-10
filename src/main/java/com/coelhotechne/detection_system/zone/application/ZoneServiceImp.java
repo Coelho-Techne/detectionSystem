@@ -75,7 +75,7 @@ public class ZoneServiceImp implements ZoneService{
     public void deleteZone(UUID uuid) {
         Zone zone = requireZone(uuid);
         long inUse = sensorRepository.countByZoneUuid(uuid)
-                + camRepository.coutByZoneUuid(uuid)
+                + camRepository.countByZoneUuid(uuid)
                 +locationRepository.countByZoneUuid(uuid);
         if (inUse > 0) {
             throw new ZoneInUseException(uuid.toString(), inUse);
