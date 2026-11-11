@@ -93,10 +93,10 @@ public class TelemetryController {
     }
 
     @PreAuthorize(TelemetryAccess.WRITE)
-    @GetMapping(value = "/api/v1/telemetry")
+    @PostMapping(value = "/api/v1/telemetry",consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TelemetryResponse>createManual(@Valid @RequestBody TelemetryRequest request){
         TelemetryResponse created = service.createManual(request);
-        return ResponseEntity.created(URI.create("/api/v1/telemetry" + created.uuid())).body(created);
+        return ResponseEntity.created(URI.create("/api/v1/telemetry/" + created.uuid())).body(created);
     }
 
     @PreAuthorize(TelemetryAccess.DELETE)
