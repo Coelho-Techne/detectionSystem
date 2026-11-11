@@ -29,9 +29,9 @@ public interface TelemetryRepository extends JpaRepository<Telemetry, UUID>, Jpa
 
     @Query(value = """
             select floor(unix_timestamp(t.measured_at) / :bucketSeconds) * :bucketSeconds as `bucketStart`,
-                   avg(t.metric_value) as `avgValue`,
-                   min(t.metric_value) as `minValue`,
-                   max(t.metric_value) as `maxValue`,
+                   avg(t.`value`) as `avgValue`,
+                   min(t.`value`) as `minValue`,
+                   max(t.`value`) as `maxValue`,
                    count(*)            as `samples`
             from telemetry t
             where t.sensor_id = :sensorId
