@@ -31,19 +31,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleInvariant(DomainInvariantViolationException ex){
         return invariant(ex);
     }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException e){
     ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT
-            ,"The resource was modified concurrently; reload and try again.");
+            ,"The resource was modified concurrently; reload and try again");
     pd.setTitle("Current Modification");
     return pd;
-    }
-    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ProblemDetail handleOptimisticLook(ObjectOptimisticLockingFailureException ex){
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "The resource was modified concurrently; reload and try again");
-        pd.setTitle("Concurrent modification");
-        return pd;
     }
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleIntegrity(DataIntegrityViolationException ex){
