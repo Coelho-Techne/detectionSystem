@@ -27,7 +27,10 @@ public class DeviceSubscriptionService {
     @Transactional(readOnly = true)
     public List<DeviceSubscriptionResponse>list(UUID deviceId){
         deviceService.requireDevice(deviceId);
-        return repository.findByDeviceUuid(deviceId).stream().map(DeviceSubscriptionResponse::from).toList();
+        return repository.findByDeviceUuid(deviceId)
+                .stream()
+                .map(DeviceSubscriptionResponse::from)
+                .toList();
     }
 
     @Transactional
@@ -39,7 +42,7 @@ public class DeviceSubscriptionService {
                 repository.findByDeviceUuidAndZoneUuid(deviceId,zone.getUuid());
         DeviceAlertSubscription subscription = existing.map(s -> {
             s.changeMinSeverity(request.minSeverity());
-            s.isActive();
+            s.activate();
             return s;
         }).orElseGet(() -> repository.save(new DeviceAlertSubscription(device,
                 zone, request.minSeverity())));
