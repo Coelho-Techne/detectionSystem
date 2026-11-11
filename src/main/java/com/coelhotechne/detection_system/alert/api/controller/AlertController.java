@@ -33,7 +33,7 @@ import java.util.UUID;
 public class AlertController {
     private final AlertService alertService;
 
-    @PreAuthorize(AlertAccess.READ)
+    @PreAuthorize(AlertAccess.READ_AGENT)
     @GetMapping
     public ResponseEntity<Page<AlertResponse>>search(
             @RequestParam(name = "status", required = false)
@@ -58,19 +58,19 @@ public class AlertController {
         AlertFilter filter = new AlertFilter(status,severity,category,zoneId,sourceId,from,to);
         return ResponseEntity.ok(alertService.search(filter,pageable));
     }
-    @PreAuthorize(AlertAccess.READ)
+    @PreAuthorize(AlertAccess.READ_AGENT)
     @GetMapping("/summary")
     public ResponseEntity<AlertSummaryResponse>summary(){
         return ResponseEntity.ok(alertService.summary());
     }
-    @PreAuthorize(AlertAccess.READ)
+    @PreAuthorize(AlertAccess.READ_AGENT)
     @GetMapping(value = "/{id}")
     public ResponseEntity<AlertResponse>get(@PathVariable UUID id){
         AlertResponse alertResponse = alertService.get(id);
         return ResponseEntity.ok().eTag(etagOf(alertResponse)).body(alertResponse);
     }
-    @PreAuthorize(AlertAccess.HANDLE)
-    @GetMapping("/{id}/acknowledge")
+    @PreAuthorize(AlertAccess.ACKNOWLEDGE)
+    @PostMapping("/{id}/acknowledge")
     public ResponseEntity<AlertResponse>acknowledge(
             @PathVariable
             UUID id,
@@ -82,7 +82,7 @@ public class AlertController {
         return ResponseEntity.ok().eTag(etagOf(alertResponse)).body(alertResponse);
     }
 
-    @PreAuthorize(AlertAccess.HANDLE)
+    @PreAuthorize(AlertAccess.RESOLVE)
     @PostMapping(value = "/{id}/resolve",consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AlertResponse>resolve(
             @PathVariable
