@@ -49,7 +49,7 @@ public class TelemetryThresholdEvaluator {
                     reading.getZone() == null ? null : reading.getZone().getUuid(),
                     reading.getMetric(),
                     reading.getValue(),
-                    current == TelemetryThresholdEvent.Band.ABOVE ? limit.max() : current == TelemetryThresholdEvent.Band.BELOW ? limit.min() : null,
+                    current == Band.ABOVE? limit.max() : current == Band.BELOW ? limit.min() : null,
                     previous,
                     current,
                     reading.getMeasuredAt()
@@ -71,7 +71,7 @@ public class TelemetryThresholdEvaluator {
             if (value.compareTo(limit.min())<0){
                 return Band.BELOW;
             }
-            if (previous == Band.BELOW && value.compareTo(limit.min().subtract(limit.hysteresis()))<0){
+            if (previous == Band.BELOW && value.compareTo(limit.min().add(limit.hysteresis()))<0){
                 return Band.BELOW;
             }
         }
