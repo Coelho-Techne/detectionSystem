@@ -41,7 +41,7 @@ public class DeviceAlertSubscription extends BaseEntity {
     public void changeMinSeverity(Severity minSeverity){
         this.minSeverity = Objects.requireNonNull(minSeverity,"minSeverity is required");
     }
-
+    public void activate(){this.active=true;}
     public void deactivate(){
         this.active = false;
     }
