@@ -16,6 +16,7 @@ import java.util.Optional;
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorAware",dateTimeProviderRef = "auditingDateTimeProvider")
 public class JpaAuditingConfig {
+
     static final String SYSTEM = "system";
 
     @Bean
@@ -28,6 +29,7 @@ public class JpaAuditingConfig {
             return Optional.ofNullable(auth.getName()).or(()-> Optional.of(SYSTEM));
         };
     }
+
     @Bean
     public DateTimeProvider auditingDateTimeProvider(Clock clock){
         return () -> Optional.of(LocalDateTime.now(clock));
