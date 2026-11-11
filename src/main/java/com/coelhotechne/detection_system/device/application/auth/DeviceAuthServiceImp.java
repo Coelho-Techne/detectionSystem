@@ -50,13 +50,14 @@ public class DeviceAuthServiceImp implements DeviceAuthService{
     }
 
     @Override
+    @Transactional
     public IssuedAccessKeyResponse rotateAccessKey(UUID uuid) {
         Device entity = repository
                 .findById(uuid)
                 .orElseThrow(()->
                         new DeviceNotFoundException(uuid.toString(), null, "Device id not found!"));
         String newKey = keyGenerator.generate();
-        entity.issueAccessKey(newKey);
+        entity.issueAccessKey(hasher.hash(newKey));
         log.info("Access key rotated for device: {}",uuid);
         return new IssuedAccessKeyResponse(uuid,newKey,clock.instant());
     }
