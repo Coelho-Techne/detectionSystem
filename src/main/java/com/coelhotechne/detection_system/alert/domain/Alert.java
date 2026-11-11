@@ -65,23 +65,23 @@ public class Alert extends BaseEntity {
     private String dedupKey;
     // Compatibilidade apenas com hibernate
     @Column(name = "open_dedup_key",insertable = false,updatable = false,
-    columnDefinition = "varchar("+DEDUP_KEY_MAX+") generated always as "+
-            "(case when status in ('TRIGGERED','ACKNOWLEDGED') then dedup-key end")
+            columnDefinition = "varchar(" + DEDUP_KEY_MAX + ") generated always as "
+                    + "(case when status in ('TRIGGERED','ACKNOWLEDGED') then dedup_key end)")
     private String openDedupKey;
 
-    @Column(name = "ocurrence_count",nullable = false)
+    @Column(name = "occurrence_count",nullable = false)
     private int occurrenceCount;
 
-    @Column(name = "first_ocurred_at",nullable = false,updatable = false)
+    @Column(name = "first_occurred_at",nullable = false,updatable = false)
     private Instant firstOccurredAt;
 
-    @Column(name = "last_occured_at",nullable = false)
+    @Column(name = "last_occurred_at",nullable = false)
     private Instant lastOccurredAt;
 
     @Column(name = "acknowledged_by",length = 255)
     private String acknowledgedBy;
 
-    @Column(name = "ackonowledge_at")
+    @Column(name = "acknowledged_at")
     private Instant acknowledgedAt;
 
     @Column(name = "resolved_by",length = 255)
