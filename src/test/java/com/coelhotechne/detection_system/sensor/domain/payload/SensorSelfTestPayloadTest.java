@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SensorSelfTestPayloadTest {
     private static final UUID SENSOR = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private final SensorEventFactory factory = new SensorEventFactory(JsonMapper.builder().build()
-    ,Clock.fixed(Instant.parse("2026-11-08T11:36:00"),ZoneOffset.UTC));
+    ,Clock.fixed(Instant.parse("2026-11-08T11:36:00Z"),ZoneOffset.UTC));
 
     @Test
     void passedResponseBecomesEvent(){
