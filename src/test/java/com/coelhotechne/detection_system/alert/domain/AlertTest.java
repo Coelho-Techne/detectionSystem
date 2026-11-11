@@ -50,7 +50,7 @@ class AlertTest {
     @Test
     void criticalNeedsNote(){
         Alert a = alert(Severity.CRITICAL);
-        assertThatThrownBy(()-> a.resolve("ana","  ",TO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(()-> a.resolve("ana","  ",TO)).isInstanceOf(IllegalArgumentException.class);
         a.resolve("ana","Smoke from kitchen",TO);
         assertThat(a.getStatus()).isEqualTo(AlertStatus.RESOLVED);
     }
