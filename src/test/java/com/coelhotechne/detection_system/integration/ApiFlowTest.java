@@ -129,7 +129,7 @@ class ApiFlowTest {
         mvc.perform(auth(get("/api/v1/cam/{id}/detections",camId).param("type","PERSON"),adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content",hasSize(1)));
-        mvc.perform(auth(get("/api/v1/cam/{id}/detections",camId).param("type","PERSON"),adminToken))
+        mvc.perform(auth(get("/api/v1/cam/{id}/detections",camId).param("type","VEHICLE"),adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content",hasSize(0)));
 
@@ -189,7 +189,7 @@ class ApiFlowTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"current_password\":\"senha-forte-123\",\"new_password\":\"outra-senha-456\"}"))
                 .andExpect(status().isNoContent());
-        assertThat(token(email,"outra-senha-436")).isNotBlank();
+        assertThat(token(email,"outra-senha-456")).isNotBlank();
     }
     // :::::::::::::::::::::::::::: util ::::::::::::::::::::::::::::
     private String token(String email, String password)throws Exception{
