@@ -12,7 +12,6 @@ import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record SensorPatchRequest(
-        @NotBlank
         @Pattern(regexp = "^[A-Za-z0-9_-]{1,15}$",
                 message = "nome deve ter até 15 caracteres alfanuméricos, '-' ou '_' " +
                         "(é usado como segmento de tópico MQTT)")
