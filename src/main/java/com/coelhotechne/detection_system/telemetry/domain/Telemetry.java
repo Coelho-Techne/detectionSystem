@@ -78,6 +78,7 @@ public class Telemetry extends BaseEntity {
     ){
         this.sensor = Objects.requireNonNull(sensor,"sensor is required");
         this.metric = Objects.requireNonNull(metric,"metric is required");
+        this.unit = metric.getUnit();
         if (!metric.allowsNiche(sensor.getSensorNiche())){
             throw new IllegalArgumentException("Metric %s is not allowed for sensor niche %s"
                     .formatted(metric,sensor.getSensorNiche()));
