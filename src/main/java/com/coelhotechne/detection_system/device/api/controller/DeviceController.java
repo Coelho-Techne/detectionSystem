@@ -41,7 +41,7 @@ public class DeviceController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceCreatedResponse> createDevice(@Valid @RequestBody DeviceRequest deviceRequest){
         DeviceCreatedResponse response = deviceService.createDevice(deviceRequest);
-        return ResponseEntity.created(URI.create("/api/v1/device"+response.deviceResponse().uuid()))
+        return ResponseEntity.created(URI.create("/api/v1/device/"+response.deviceResponse().uuid()))
                 .header(HttpHeaders.CACHE_CONTROL,"no-store")
                 .body(response);
     }
