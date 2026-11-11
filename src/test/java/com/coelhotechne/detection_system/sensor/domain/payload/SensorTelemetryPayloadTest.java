@@ -35,7 +35,7 @@ class SensorTelemetryPayloadTest {
                  "diagnostics":{"status":true,"memory_used":41.2,"power_percentage":78,"rssi_dbm":-67}}
                 """, SensorTelemetryPayload.class);
         assertThat(p.version()).isEqualTo(2);
-        assertThat(p.version()).isEqualTo(Instant.parse("2026-10-09T23:41:05Z"));
+        assertThat(p.measuredAt()).isEqualTo(Instant.parse("2026-10-09T23:41:05Z"));
         assertThat(p.reading()).hasSize(2);
         assertThat(p.reading().get(0).metric()).isEqualTo("temperature");
         assertThat(p.memoryUsed()).isEqualByComparingTo("41.2");
