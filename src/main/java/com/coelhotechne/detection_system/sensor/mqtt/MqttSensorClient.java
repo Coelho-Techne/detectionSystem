@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.sensor.mqtt;
 
+import jakarta.annotation.PreDestroy;
 
 import com.coelhotechne.detection_system.sensor.application.event.SensorEventHandler;
 import io.micrometer.core.instrument.Timer;
@@ -27,7 +28,7 @@ public class MqttSensorClient implements MqttCallbackExtended{
             "home/+/+/detection",
             "home/+/+/status",
             "home/+/+/telemetry",
-            "home/+/+/selftest-afk"
+            "home/+/+/selftest"
     }; // status | telemetry | detection
     private static final int[] EVENT_QOS = {1, 1, 1, 1};
 
@@ -84,6 +85,7 @@ public class MqttSensorClient implements MqttCallbackExtended{
         }
         tryConnection();
     }
+    @PreDestroy
     public  void stop() throws InterruptedException{
         stopping =true;
         try {
@@ -125,7 +127,7 @@ public class MqttSensorClient implements MqttCallbackExtended{
             subscriptionHealthy = true;
             log.info("Subscribed to {}",String.join(", ",EVENT_TOPICS));
         }catch (MqttException ex){
-            subscriptionHealthy=true;
+            subscriptionHealthy = false;
             log.error("Failed to subscribe; retrying in {}s; error: {}",retryDelay.toSeconds(),ex);
             scheduler.schedule(this::subscribe,Instant.now().plus(retryDelay));
         }
