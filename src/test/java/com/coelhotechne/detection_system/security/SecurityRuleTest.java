@@ -57,7 +57,7 @@ class SecurityRuleTest {
     @WithMockUser(roles = "TECHNICIAN")
     void homologationAllowedForTechnician() throws Exception {
         mvc.perform(post("/api/v1/cam/{camId}/homologation/test", UUID.randomUUID()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
     @Test
     @WithMockUser(roles = "TECHNICIAN")
