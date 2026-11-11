@@ -62,13 +62,13 @@ public record SensorTelemetryPayload (
                 version,
                 msgId,
                 measuredAt,
-                status,
-                memoryUsed,
-                dataTransferValue,
-                dataDescription,
-                powerPercentage,
-                powerCharging,
-                rssiDbm,
+                d.status(),
+                d.memoryUsed(),
+                d.dataTransferValue(),
+                d.dataDescription(),
+                d.powerPercentage(),
+                d.powerCharging(),
+                d.rssiDbm(),
                 readings
         );
     }
