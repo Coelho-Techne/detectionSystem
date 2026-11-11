@@ -27,10 +27,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
     private final UserRepository repository;
     private final PasswordEncoder encoder;
-
-
 
     @Transactional(readOnly = true)
     public Page<UserResponse>listUserPage(Pageable pageable){
@@ -68,7 +67,7 @@ public class UserService {
                 ((request.role() !=null && request.role() !=Role.ADMIN)
                         || Boolean.FALSE.equals(request.enabled()));
 
-        if (losesAdmin && repository.countByRoleAndEnableTrue(Role.ADMIN)<=1){
+        if (losesAdmin && repository.countByRoleAndEnabledTrue(Role.ADMIN)<=1){
             throw new UserConflictException(HttpStatus.CONFLICT,"Cannot remove or disable the last active ADMIN");
         }
         if (request.role()!=null)user.setRole(request.role());
