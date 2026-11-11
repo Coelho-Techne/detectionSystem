@@ -45,9 +45,9 @@ public class UserController {
         return ResponseEntity.ok(service.getUserId(id));
     }
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserResponse>createUser(@PathVariable @Valid UserCreateRequest request){
+    public ResponseEntity<UserResponse>createUser(@Valid @RequestBody UserCreateRequest request){
         UserResponse created = service.createUser(request);
-        return ResponseEntity.created(URI.create("/api/v1/user"+created.uuid())).body(created);
+        return ResponseEntity.created(URI.create("/api/v1/user/"+created.uuid())).body(created);
     }
     @PostMapping(value = "/{id}/password",consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void>resetPassword(@PathVariable UUID id, @Valid @RequestBody PasswordChangeRequest request){
@@ -58,7 +58,4 @@ public class UserController {
     public ResponseEntity<UserResponse>updateUser(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequest request){
         return ResponseEntity.ok(service.updateUser(id,request));
     }
-
-
-
 }
