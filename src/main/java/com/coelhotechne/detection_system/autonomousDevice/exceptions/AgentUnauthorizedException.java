@@ -1,11 +1,13 @@
 package com.coelhotechne.detection_system.autonomousDevice.exceptions;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.ErrorResponseException;
 
 import java.util.UUID;
 
+@Getter
 public class AgentUnauthorizedException extends ErrorResponseException {
     private final String agentName;
     private final UUID agentId;
