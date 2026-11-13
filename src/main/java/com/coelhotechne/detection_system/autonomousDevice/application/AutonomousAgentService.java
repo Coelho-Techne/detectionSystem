@@ -87,7 +87,7 @@ public class AutonomousAgentService {
     @Transactional
     public AgentResponse heartbeat(UUID agentId,String rawKey){
         AutonomousDevice agent = authenticate(agentId,rawKey);
-        agent.heartBeat(clock.instant());
+        agent.heartbeat(clock.instant());
         return AgentResponse.from(agent);
     }
     @Transactional
