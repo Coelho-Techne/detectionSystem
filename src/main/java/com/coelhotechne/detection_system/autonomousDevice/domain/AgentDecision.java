@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.autonomousDevice.domain;
 
+import com.coelhotechne.detection_system.autonomousDevice.domain.enums.AgentDecisionOutcome;
 import com.coelhotechne.detection_system.autonomousDevice.domain.enums.AutonomousCapability;
 import com.coelhotechne.detection_system.security.domain.enums.Role;
 
