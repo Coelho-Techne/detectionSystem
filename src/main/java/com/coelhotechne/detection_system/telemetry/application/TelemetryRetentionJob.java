@@ -46,14 +46,14 @@ public class TelemetryRetentionJob {
         }
         Instant cutoff = clock.instant().minus(retention);
         long total = 0;
-        int deleted = 0;
+        int deleted;
         do {
             Integer batch = template.execute(status -> repository.deleteOlderThan(cutoff,bactchSize));
             deleted = batch == null ? 0 : batch;
             total+=deleted;
         }while (deleted == bactchSize);
         if (total>0){
-            log.info("Telemetry retention: {} reanding(s) older than {} deleted",total,cutoff);
+            log.info("Telemetry retention: {} reading(s) older than {} deleted",total,cutoff);
         }
     }
 }
