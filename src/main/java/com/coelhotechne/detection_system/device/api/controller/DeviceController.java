@@ -26,12 +26,12 @@ public class DeviceController {
 
     private final DeviceService deviceService;
 
-    @PreAuthorize(DeviceAccess.READ)
+    @PreAuthorize(DeviceAccess.READ_AGENT)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<DeviceResponse>> findDeviceList(){
         return ResponseEntity.status(HttpStatus.OK).body(deviceService.findDeviceList());
     }
-    @PreAuthorize(DeviceAccess.READ)
+    @PreAuthorize(DeviceAccess.READ_AGENT)
     @GetMapping(value = "/{id}"
             ,produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResponse>findDeviceId(@PathVariable UUID id){
@@ -45,7 +45,7 @@ public class DeviceController {
                 .header(HttpHeaders.CACHE_CONTROL,"no-store")
                 .body(response);
     }
-    @PreAuthorize(DeviceAccess.EDIT)
+    @PreAuthorize(DeviceAccess.EDIT_AGENT)
     @PutMapping(value = "/{id}"
             ,consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResponse> updateDevice(@PathVariable UUID id,
