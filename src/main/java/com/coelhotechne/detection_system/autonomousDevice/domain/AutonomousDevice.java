@@ -200,7 +200,7 @@ public class AutonomousDevice extends Device {
         agentStatus = AutonomousAgentStatus.DISABLED;
         setStatus(Boolean.FALSE);
     }
-    public void heartBeat(Instant at){
+    public void heartbeat(Instant at){
         Objects.requireNonNull(at,"at is required");
         if (lastHeartbeatAt == null || at.isAfter(lastExecutionAt)){
             lastHeartbeatAt = at;
