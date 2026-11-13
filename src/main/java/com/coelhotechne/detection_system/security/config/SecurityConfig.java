@@ -81,6 +81,7 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                             .requestMatchers(HttpMethod.POST,"/api/v1/cam/*/auth", "/api/v1/sensor/*/auth").permitAll()
                             .requestMatchers(HttpMethod.POST,"/api/v1/device/*/authenticate").permitAll()
+                            .requestMatchers(HttpMethod.POST,"/api/v1/agent/*/heartbeat").permitAll()
                             .requestMatchers("/ws","/ws/**").permitAll()
                             .requestMatchers(HttpMethod.GET,"/actuator/health","/actuator/health/**").permitAll()
                             .requestMatchers("/api/v1/cam/*/homologation/**", "/api/v1/sensor/*/homologation/**")
