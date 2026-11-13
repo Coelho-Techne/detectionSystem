@@ -29,10 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ApiFlowTest {
-    
+
     @Autowired
     MockMvc mvc;
-    
+
     private String adminToken;
 
     @BeforeEach
@@ -150,7 +150,7 @@ class ApiFlowTest {
                 .andExpect(header().string(HttpHeaders.LOCATION,startsWith("/api/v1/device")))
                 .andReturn().getResponse().getContentAsString();
         String deviceId = JsonPath.read(body,"$.uuid");
-        Integer key= JsonPath.read(body,"$.access_key");
+        String key= JsonPath.read(body,"$.access_key");
 
         mvc.perform(post("/api/v1/device/{id}/authenticate",deviceId)
                 .contentType(MediaType.APPLICATION_JSON)
