@@ -1,7 +1,7 @@
 package com.coelhotechne.detection_system.autonomousDevice.api.dto;
 
 import com.coelhotechne.detection_system.autonomousDevice.domain.AgentActionRecord;
-import com.coelhotechne.detection_system.autonomousDevice.domain.AgentDecisionOutcome;
+import com.coelhotechne.detection_system.autonomousDevice.domain.enums.AgentDecisionOutcome;
 import com.coelhotechne.detection_system.autonomousDevice.domain.enums.AutonomousCapability;
 import com.coelhotechne.detection_system.security.domain.enums.Role;
 import tools.jackson.databind.PropertyNamingStrategies;
