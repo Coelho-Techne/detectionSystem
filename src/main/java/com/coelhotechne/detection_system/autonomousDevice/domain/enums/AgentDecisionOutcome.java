@@ -1,4 +1,4 @@
-package com.coelhotechne.detection_system.autonomousDevice.domain;
+package com.coelhotechne.detection_system.autonomousDevice.domain.enums;
 
 public enum AgentDecisionOutcome {
     ALLOWED,
