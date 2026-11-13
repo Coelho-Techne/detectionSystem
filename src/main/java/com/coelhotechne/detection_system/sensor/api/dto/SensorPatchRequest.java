@@ -2,7 +2,6 @@ package com.coelhotechne.detection_system.sensor.api.dto;
 
 import com.coelhotechne.detection_system.installation.api.dto.InstallationRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import tools.jackson.databind.PropertyNamingStrategies;
