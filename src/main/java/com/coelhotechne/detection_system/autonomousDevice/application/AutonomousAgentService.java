@@ -65,7 +65,7 @@ public class AutonomousAgentService {
         return new AgentCreatedResponse(AgentResponse.from(saved),rawKey);
     }
     @Transactional(readOnly = true)
-    public AgentResponse get(UUID agentId, AutonomousAgentStatus status){
+    public AgentResponse get(UUID agentId){
         return AgentResponse.from(requireAgent(agentId));
     }
     @Transactional
