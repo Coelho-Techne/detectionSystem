@@ -33,7 +33,7 @@ public class AgentGuard {
             return true;
         }
         if (id == null || key == null){
-            throw new AgentUnauthorizedException(null,null,AGENT_ID_HEADER+" and "+AGENT_ID_HEADER+" must be sent together");
+            throw new AgentUnauthorizedException(null,null,AGENT_ID_HEADER+" and "+AGENT_KEY_HEADER+" must be sent together");
         }
 
         UUID agentId = parse(id);
@@ -50,7 +50,7 @@ public class AgentGuard {
         try {
             return UUID.fromString(id.trim());
         }catch (IllegalArgumentException ex){
-            throw new AgentUnauthorizedException(null,null,AGENT_ID_HEADER + "is not a valid UUID");
+            throw new AgentUnauthorizedException(null,null,AGENT_ID_HEADER + " is not a valid UUID");
         }
     }
     private static HttpServletRequest currentRequest(){
