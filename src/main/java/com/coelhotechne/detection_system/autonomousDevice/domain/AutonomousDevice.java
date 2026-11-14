@@ -104,7 +104,7 @@ public class AutonomousDevice extends Device {
             String accessKeyHash,
             Instant now
     ){
-        String name = Objects.requireNonNull(agentName,"agentName is required");
+        String name = Objects.requireNonNull(agentName,"agentName is required").trim();
         if (name.isEmpty()||name.length()>NAME_MAX){
             throw new IllegalArgumentException("agentName must have 1.."+NAME_MAX+" characters");
         }
@@ -141,7 +141,10 @@ public class AutonomousDevice extends Device {
             return AgentDecision.denied(capability,requesterRole,"agent is "+agentStatus);
         }
         if( agentStatus == AutonomousAgentStatus.TESTING && capability.isMutating()){
-            return AgentDecision.denied(capability,requesterRole,"agent in TESTING is read");
+            return AgentDecision.denied(capability,requesterRole,"agent in TESTING is read-only");
+        }
+        if (!capabilities.contains(capability)){
+            return AgentDecision.denied(capability,requesterRole,"agent does not have capability "+capability);
         }
         if (!AgentPermissionPolicy.permits(requesterRole,capability)){
             return AgentDecision.denied(capability,requesterRole,"role "+requesterRole+" is not allowed to "+capability);
@@ -164,7 +167,7 @@ public class AutonomousDevice extends Device {
         if (capability == AutonomousCapability.SYSTEM_MAINTENANCE && !allowAutomaticMaintenance){
             return AgentDecision.approval(capability,role,"automatic maintenance disabled");
         }
-        if (capability == AutonomousCapability.DEVICE_RESTART && allowAutomaticRecovery){
+        if (capability == AutonomousCapability.DEVICE_RESTART && !allowAutomaticRecovery){
             return AgentDecision.approval(capability,role,"automatic recovery is disabled");
         }
         return AgentDecision.allowed(capability,role);
@@ -186,7 +189,7 @@ public class AutonomousDevice extends Device {
 
     public void activate(){
         if (agentStatus == AutonomousAgentStatus.DISABLED){
-            throw new IllegalArgumentException("a DISABLED agent cannot be reactivated; register a new one");
+            throw new IllegalStateException("a DISABLED agent cannot be reactivated; register a new one");
         }
         agentStatus   = AutonomousAgentStatus.ACTIVE;
         setStatus(Boolean.TRUE);
@@ -202,7 +205,7 @@ public class AutonomousDevice extends Device {
     }
     public void heartbeat(Instant at){
         Objects.requireNonNull(at,"at is required");
-        if (lastHeartbeatAt == null || at.isAfter(lastExecutionAt)){
+        if (lastHeartbeatAt == null || at.isAfter(lastHeartbeatAt)){
             lastHeartbeatAt = at;
             setLastCommunication(LocalDateTime.ofInstant(at,ZoneOffset.UTC));
         }
