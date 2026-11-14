@@ -1,4 +1,4 @@
-package com.coelhotechne.detection_system.autonomousDevice.infraestructure;
+package com.coelhotechne.detection_system.autonomousDevice.infrastructure;
 
 import com.coelhotechne.detection_system.autonomousDevice.domain.AutonomousDevice;
 import org.springframework.data.jpa.repository.JpaRepository;
