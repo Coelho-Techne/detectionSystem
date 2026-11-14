@@ -77,6 +77,7 @@ public class CamFixedServiceImpl implements CamFixedService{
     public CamFixedResponse updateCam(UUID uuid, CamFixedRequest camFixedRequest) {
         CamFixed camFixed = requireCam(uuid);
         String previousBaseLineFrameUrl = camFixed.getBaselineFrameUrl();
+        apply(camFixed,camFixedRequest);
         if (camFixed.getBaselineFrameUrl() != null
                 && !Objects.equals(previousBaseLineFrameUrl,camFixed.getBaselineFrameUrl())){
             camFixed.setBaselineCapturedAt(clock.instant());
@@ -98,7 +99,7 @@ public class CamFixedServiceImpl implements CamFixedService{
     }
     private CamFixed saveOrConflict(CamFixed camFixed) {
         try {
-            return repository.save(camFixed);
+            return repository.saveAndFlush(camFixed);
         } catch (OptimisticLockingFailureException e) {
             throw new CamConcurrentModificationException(
                     camFixed.getUuid() != null ? camFixed.getUuid().toString() : null,
