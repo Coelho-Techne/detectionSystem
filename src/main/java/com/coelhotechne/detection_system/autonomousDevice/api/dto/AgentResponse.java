@@ -2,7 +2,7 @@ package com.coelhotechne.detection_system.autonomousDevice.api.dto;
 
 import com.coelhotechne.detection_system.autonomousDevice.domain.AutonomousDevice;
 import com.coelhotechne.detection_system.autonomousDevice.domain.enums.*;
-import tools.jackson.databind.PropertyNamingStrategy;
+import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
 
 import java.time.Instant;
@@ -10,7 +10,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
-@JsonNaming(PropertyNamingStrategy.class)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AgentResponse(
         UUID uuid,
         Long version,
@@ -49,7 +49,7 @@ public record AgentResponse(
                 device.getExecutionMode(),
                 device.getAgentStatus(),
                 device.getCommunicationStatus(),
-                device.getCapabilities(),
+                cap,
                 device.isRequireApproval(),
                 device.isAllowAutomaticMaintenance(),
                 device.isAllowAutomaticRecovery(),
