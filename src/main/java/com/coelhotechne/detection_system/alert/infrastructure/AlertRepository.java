@@ -28,6 +28,12 @@ public interface AlertRepository extends JpaRepository<Alert, UUID>, JpaSpecific
                     :detectionId, :zoneId, :title, :description, :dedupKey,
                     1, :occurredAt, :occurredAt)
             on duplicate key update
+                severity = case
+                    when (case values(severity) when 'INFO' then 0 when 'LOW' then 1 when 'MEDIUM' then 2
+                                                when 'HIGH' then 3 else 4 end)
+                       > (case severity when 'INFO' then 0 when 'LOW' then 1 when 'MEDIUM' then 2
+                                        when 'HIGH' then 3 else 4 end)
+                    then values(severity) else severity end,
                 occurrence_count = occurrence_count + 1,
                 last_occurred_at = greatest(last_occurred_at, values(last_occurred_at)),
                 updated_at       = values(updated_at),
