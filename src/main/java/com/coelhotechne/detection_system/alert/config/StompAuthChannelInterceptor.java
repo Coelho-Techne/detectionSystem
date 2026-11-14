@@ -3,7 +3,7 @@ package com.coelhotechne.detection_system.alert.config;
 import com.coelhotechne.detection_system.device.application.auth.DeviceAuthService;
 import com.coelhotechne.detection_system.security.application.CustomUserDetailsService;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtTokenProvider;
-import com.coelhotechne.detection_system.security.exceptions.UserNotFoundException;
+import com.coelhotechne.detection_system.security.exceptions.UsernameNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.messaging.Message;
@@ -68,7 +68,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 }
                 return UsernamePasswordAuthenticationToken.authenticated(userDetails,
                         null,userDetails.getAuthorities());
-            }catch (UserNotFoundException ex ){
+            }catch (UsernameNotFoundException ex ){
                 throw new MessageDeliveryException("Unknown user");
             }
         }
