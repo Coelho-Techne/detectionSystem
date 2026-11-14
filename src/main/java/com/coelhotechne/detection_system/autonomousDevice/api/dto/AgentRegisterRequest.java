@@ -20,8 +20,8 @@ public record AgentRegisterRequest (
         @NotNull
         AutonomyLevel autonomyLevel,
         @NotNull
-        Set<AutonomousCapability> capability,
         @Size(max = 80)
+        Set<AutonomousCapability> capabilities,
         String modelName,
         @Size(max = 40)
         String modelVersion,
