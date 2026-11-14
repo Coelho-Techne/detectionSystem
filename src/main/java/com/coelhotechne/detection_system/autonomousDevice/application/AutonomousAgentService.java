@@ -11,8 +11,8 @@ import com.coelhotechne.detection_system.autonomousDevice.domain.enums.Autonomou
 import com.coelhotechne.detection_system.autonomousDevice.domain.enums.AutonomousCapability;
 import com.coelhotechne.detection_system.autonomousDevice.exceptions.AgentNotFoundException;
 import com.coelhotechne.detection_system.autonomousDevice.exceptions.AgentUnauthorizedException;
-import com.coelhotechne.detection_system.autonomousDevice.infraestructure.AgentActionRecordRepository;
-import com.coelhotechne.detection_system.autonomousDevice.infraestructure.AutonomousDeviceRepository;
+import com.coelhotechne.detection_system.autonomousDevice.infrastructure.AgentActionRecordRepository;
+import com.coelhotechne.detection_system.autonomousDevice.infrastructure.AutonomousDeviceRepository;
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyGenerator;
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyHasher;
 import com.coelhotechne.detection_system.security.config.device.DeviceAuthenticationToken;
@@ -43,6 +43,7 @@ public class AutonomousAgentService {
     private final AccessKeyHasher hasher;
     private final Clock clock;
 
+    @Transactional
     public AgentCreatedResponse register(AgentRegisterRequest request){
         String name = request.agentName().trim();
         if (agentRepository.existsByAgentName(name)){
@@ -52,7 +53,7 @@ public class AutonomousAgentService {
         AutonomousDevice agent = AutonomousDevice.register(name,
                 request.agentType(),
                 request.autonomyLevel(),
-                request.capability(),
+                request.capabilities(),
                 hasher.hash(rawKey),
                 clock.instant());
         agent.describeModel(request.modelName(),request.modelVersion(),request.firmwareVersion());
@@ -71,18 +72,24 @@ public class AutonomousAgentService {
     @Transactional
     public AgentResponse changeStatus(UUID agentId, AutonomousAgentStatus status){
         AutonomousDevice agent = requireAgent(agentId);
-        switch (status){
-            case ACTIVE -> agent.activate();
-            case SUSPENDED -> agent.suspend();
-            case DISABLED -> agent.disable();
-            default -> throw new IllegalArgumentException("status must be ACTIVE, SUSPENDED  or DISABLED");
+        try {
+
+            switch (status){
+                case ACTIVE -> agent.activate();
+                case SUSPENDED -> agent.suspend();
+                case DISABLED -> agent.disable();
+                default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "status must be ACTIVE, SUSPENDED  or DISABLED");
+            }
+        }catch (IllegalStateException ex){
+            throw new ResponseStatusException(HttpStatus.CONFLICT,ex.getMessage());
         }
         return AgentResponse.from(agentRepository.saveAndFlush(agent));
     }
     @Transactional(readOnly = true)
     public Page<AgentActionResponse>actions(UUID agentId, Pageable pageable){
         requireAgent(agentId);
-        return actionRepository.findByAgentUuid(agentId,pageable).map(AgentActionResponse::from);
+        return actionRepository.findByAgentId(agentId,pageable).map(AgentActionResponse::from);
     }
     @Transactional
     public AgentResponse heartbeat(UUID agentId,String rawKey){
@@ -106,7 +113,7 @@ public class AutonomousAgentService {
         ));
         if (!decision.isAllowed()){
             log.info("Agent {} {} {} for ({}): {}",agent.getAgentName(),
-                    decision.capability(),
+                    decision.outcome(),
                     capability,
                     who,
                     role,
@@ -119,7 +126,7 @@ public class AutonomousAgentService {
 
     private AutonomousDevice authenticate(UUID agentId,String rawKey){
         AutonomousDevice agent = agentRepository.findById(agentId).orElse(null);
-        if (agent == null || hasher.matches(rawKey,agent.getAccessKey())){
+        if (agent == null || !hasher.matches(rawKey,agent.getAccessKey())){
             throw new AgentUnauthorizedException(null,agentId,"invalid agent credentials");
         }
         if (agent.getAgentStatus() == AutonomousAgentStatus.DISABLED){
