@@ -171,7 +171,7 @@ public final class AlertRules {
                 event.sensorId(),
                 zoneId,
                 null,
-                "Battery"+status.name().toLowerCase(),
+                "Battery "+status.name().toLowerCase(),
                 null,
                 AlertDecision.key(AlertSourceType.SENSOR,event.sensorId(),AlertType.RESOURCE_LOW,status),
                 event.occurredAt()
