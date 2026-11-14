@@ -18,7 +18,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "autonomous_agent_action", indexes = {
-        @Index(name = "idx_agent_action_agent_time",columnList = "agent_uuid, occurred_at"),
+        @Index(name = "idx_agent_action_agent_time",columnList = "agent_id, occurred_at"),
         @Index(name = "idx_agent_action_request",columnList = "requester, occurred_at")
 })
 public class AgentActionRecord extends BaseEntity {
