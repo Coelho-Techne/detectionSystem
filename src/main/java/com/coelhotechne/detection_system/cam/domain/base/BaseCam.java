@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OptimisticLock;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
@@ -94,6 +95,7 @@ public class BaseCam extends BaseEntity {
     private String accessKey;
 
     @Setter(AccessLevel.NONE)
+    @OptimisticLock(excluded = true)
     @Column(name = "last_communication")
     private Instant lastCommunication;
 
