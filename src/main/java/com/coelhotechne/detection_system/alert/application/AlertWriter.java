@@ -60,7 +60,7 @@ public class AlertWriter {
         if (decision.severity().compareTo(Severity.HIGH)<0 && repository
                 .existsByDedupKeyAndClosedAtAfter(decision.dedupKey(),now.minus(silenceWindow))){
             log.debug("Alert {} suppressed: same key closed less than {} ago",decision.dedupKey(),silenceWindow);
-            count("supressed",decision);
+            count("suppressed",decision);
             return;
         }
         int rows = repository.upsertOpen(
@@ -79,7 +79,7 @@ public class AlertWriter {
                 decision.occurredAt()
         );
         Alert alert = repository.findByOpenDedupKey(decision.dedupKey()).orElseThrow(()->
-                new IllegalArgumentException("Open alert not found after upsert"+ decision.dedupKey()));
+                new IllegalStateException("Open alert not found after upsert: "+ decision.dedupKey()));
 
         boolean created = rows == 1;
         count(created ? "created": "repeated",decision);
