@@ -83,10 +83,11 @@ public class DetectionRecorder {
                     null, DetectionOutcome.INVALID,
                     "category is required");
         }
-        if (repository.existsBySourceEventId(event.eventId())){
+        Optional<Detection>existing = repository.findBySourceEventId(event.eventId());
+        if (existing.isPresent()){
             log.debug("Detection {} from Sensor {} already recorded (redelivery) - ignored"
                     ,event.eventId(),event.sensorId());
-            return DetectionRecordResult.duplicate(null);
+            return duplicate(existing.get());
         }
         Sensor sensor = sensorRepository.findById(event.sensorId()).orElseThrow(()->
                 new SensorNotFoundException(event.sensorId().toString()," Sensor not found!"));
@@ -140,9 +141,8 @@ public class DetectionRecorder {
 
         UUID sourceEventId = cameraSourceEventId(camId,command.eventId());
         Optional<Detection>existing = repository.findBySourceEventId(sourceEventId);
-
         if (existing.isPresent()){
-            return DetectionRecordResult.duplicate(existing.get());
+            return duplicate(existing.get());
         }
 
         BaseCam cam = camRepository.findById(camId)
@@ -226,6 +226,10 @@ public class DetectionRecorder {
         eventPublisher.publishEvent(DetectionRecordedEvent.of(saved));
         return DetectionRecordResult.stored(saved);
 
+    }
+    private DetectionRecordResult duplicate(Detection existing){
+        metrics.count(existing.getDeviceType(),existing.getType(),DetectionOutcome.DUPLICATE);
+        return DetectionRecordResult.duplicate(existing);
     }
     private DetectionRecordResult discard(DetectionDeviceType deviceType, DetectionType type,
                                           DetectionOutcome outcome, String reason) {
