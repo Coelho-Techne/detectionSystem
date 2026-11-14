@@ -34,6 +34,8 @@ public class AutonomousAgentController {
         AgentCreatedResponse created = service.register(request);
         return ResponseEntity.created(URI.create("/api/v1/agent/"+created.agentResponse().uuid())).body(created);
     }
+    @PreAuthorize(AgentAccess.READ)
+    @GetMapping("/{id}")
     public ResponseEntity<AgentResponse>get(@PathVariable UUID id){
         return ResponseEntity.ok(service.get(id));
     }
