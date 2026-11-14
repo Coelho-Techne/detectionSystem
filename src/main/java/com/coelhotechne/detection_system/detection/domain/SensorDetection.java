@@ -89,7 +89,7 @@ public class SensorDetection extends Detection{
             }
             if (gasType.detectionType()!=detectionType){
                 throw new IllegalArgumentException("Gas %s implies %s, but detection type is %s"
-                        .formatted(gasType,getGasType(),detectionType));
+                        .formatted(gasType,gasType.detectionType(),detectionType));
             }
         }
 
