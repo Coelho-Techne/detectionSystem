@@ -42,6 +42,7 @@ public class CamAuthServiceImpl implements CamAuthService {
     }
 
     @Override
+    @Transactional
     public void requireValidAccessKey(UUID camId, String presentedAccessKey) {
         CamAuthResponse response = authenticate(camId, presentedAccessKey);
         if (response.message() != CamAuthMessage.AUTORIZADO) {
