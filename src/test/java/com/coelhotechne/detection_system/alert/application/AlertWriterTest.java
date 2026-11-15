@@ -45,7 +45,7 @@ class AlertWriterTest {
         assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.CREATED);
     }
     @Test
-    void repeatOfOpenAlertIsCreated(){
+    void repeatOfOpenAlertIsRepeated(){
         AlertDecision d = decision(Severity.MEDIUM);
         givenUpsertReturns(2,d);
 
@@ -62,15 +62,14 @@ class AlertWriterTest {
         verify(repository,never()).upsertOpen(any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any());
 
-        verifyNoInteractions(publishChange());
+        verifyNoInteractions(eventPublisher);
     }
     @Test
     void highSeverityIgnoreSilenceWindow(){
         AlertDecision d = decision(Severity.CRITICAL);
         when(repository.existsByDedupKeyAndClosedAtAfter(any(),any())).thenReturn(true);
-
+        givenUpsertReturns(1,d);
         writer.apply(AlertRuleOutcome.raise(d));
-
         assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.CREATED);
     }
 
