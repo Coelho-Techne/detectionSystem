@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.zone.application;
 
 import com.coelhotechne.detection_system.cam.infrastructure.CamRepository;
+import com.coelhotechne.detection_system.device.infrastructure.DeviceAlertSubscriptionRepository;
 import com.coelhotechne.detection_system.location.infrastructure.LocationRepository;
 import com.coelhotechne.detection_system.sensor.infrastructure.SensorRepository;
 import com.coelhotechne.detection_system.zone.api.dto.ZoneMapper;
@@ -30,6 +31,7 @@ public class ZoneServiceImp implements ZoneService{
     private final SensorRepository sensorRepository;
     private final CamRepository camRepository;
     private final LocationRepository locationRepository;
+    private final DeviceAlertSubscriptionRepository subscriptionRepository;
     private final Clock clock;
 
     @Override
@@ -59,7 +61,7 @@ public class ZoneServiceImp implements ZoneService{
     public ZoneResponse createZone(ZoneRequest zoneRequest) {
         Zone entity = new Zone();
         mapper.toEntity(entity,zoneRequest);
-        entity.setCreatedZoneAtDay(LocalDate.now());
+        entity.setCreatedZoneAtDay(LocalDate.now(clock));
         return mapper.toResponse(repository.save(entity));
     }
 
@@ -72,14 +74,20 @@ public class ZoneServiceImp implements ZoneService{
     }
 
     @Override
+    @Transactional
     public void deleteZone(UUID uuid) {
         Zone zone = requireZone(uuid);
-        long inUse = sensorRepository.countByZoneUuid(uuid)
-                + camRepository.countByZoneUuid(uuid)
-                +locationRepository.countByZoneUuid(uuid);
+        long inUse =countByZoneUuid(uuid);
         if (inUse > 0) {
             throw new ZoneInUseException(uuid.toString(), inUse);
         }
         repository.delete(zone);
+    }
+
+    private long countByZoneUuid(UUID uuid){
+        return sensorRepository.countByZoneUuid(uuid)
+                + camRepository.countByZoneUuid(uuid)
+                +locationRepository.countByZoneUuid(uuid)
+                + subscriptionRepository.countByZoneUuid(uuid);
     }
 }
