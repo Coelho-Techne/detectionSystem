@@ -27,6 +27,9 @@ public class SensorEventFactory {
     private final Clock clock;
 
     public SensorEvent create(SensorTopic topic, String payload) {
+        if (payload == null || payload.isBlank()){
+            throw new SensorEventParseException("Empty sensor event payload for type '%s'".formatted(topic.eventType()),null);
+        }
         try {
             return switch (topic.eventType()) {
                 case "detection" -> createDetection(topic.sensorId(), payload);
