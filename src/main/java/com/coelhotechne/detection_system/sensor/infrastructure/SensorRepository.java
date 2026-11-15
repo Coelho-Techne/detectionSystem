@@ -18,7 +18,7 @@ import java.util.UUID;
 public interface SensorRepository extends JpaRepository<Sensor, UUID> {
     @EntityGraph(attributePaths = "zone")
     Optional<Sensor>findByNameAndZoneName(String sensorName, String zoneName);
-    Long countByZoneUuid(UUID uuid);
+    long countByZoneUuid(UUID uuid);
 
     @Query("select s.uuid from Sensor s where s.name = :sensorName and s.zone.name = :zoneName")
     Optional<UUID> findUuidByNameAndZoneName(@Param("sensorName") String sensorName,
