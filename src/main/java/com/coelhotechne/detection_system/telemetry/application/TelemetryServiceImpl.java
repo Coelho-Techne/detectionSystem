@@ -49,12 +49,14 @@ public class TelemetryServiceImpl implements TelemetryService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TelemetryResponse get(UUID id) {
         return mapper.toResponse(requireId(id));
 
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TelemetryResponse> latest(UUID sensorId) {
         sensorService.requireSensor(sensorId);
         return repository
@@ -64,6 +66,7 @@ public class TelemetryServiceImpl implements TelemetryService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TelemetrySeriesPoint> series(UUID sensorId, TelemetryMetric metric, Instant from, Instant to, Duration bucket) {
         if (metric==null){
             throw new TelemetryInvalidQueryException("'metric' is required");
@@ -84,6 +87,7 @@ public class TelemetryServiceImpl implements TelemetryService{
     }
 
     @Override
+    @Transactional
     public TelemetryResponse createManual(TelemetryRequest request) {
         Sensor sensor = sensorService.requireSensor(request.sensorId());
         TelemetryMetric metric = TelemetryMetric.fromCode(request.metric());
@@ -111,6 +115,7 @@ public class TelemetryServiceImpl implements TelemetryService{
     }
 
     @Override
+    @Transactional
     public void delete(UUID uuid) {
         repository.delete(requireId(uuid));
         log.info("Telemetry {} deleted manually",uuid);
