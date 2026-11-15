@@ -5,7 +5,6 @@ import com.coelhotechne.detection_system.sensor.exceptions.SensorEventParseExcep
 import com.coelhotechne.detection_system.sensor.exceptions.SensorNotFoundException;
 import com.coelhotechne.detection_system.sensor.exceptions.UnsupportedSensorEventException;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.persistence.OptimisticLockException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import io.micrometer.core.instrument.Timer;
@@ -23,7 +22,7 @@ public class MqttIngestionMetrics {
     }
 
     public  void bindQueue(BlockingQueue<?> queue){
-        registry.gauge("detection.mqtt,queue.size", queue, BlockingQueue::size);
+        registry.gauge("detection.mqtt.queue.size", queue, BlockingQueue::size);
     }
 
     public Timer.Sample start(){
@@ -36,7 +35,7 @@ public class MqttIngestionMetrics {
             Throwable failure
             ){
         sample.stop(registry.timer("detection.mqtt.processing","topic_type",topicType));
-        registry.counter("detection.mqtt.messages","topic_type",topicType,"result",result(failure));
+        registry.counter("detection.mqtt.messages","topic_type",topicType,"result",result(failure)).increment();
     }
 
     private String result(Throwable failure) {
@@ -51,6 +50,6 @@ public class MqttIngestionMetrics {
 
     static String topicType(String topic){
         int topicIndex = topic.indexOf('/');
-        return topicIndex < 0 ? "unknown" : topic.substring(topicIndex+1);
+        return topicIndex < 0 || topicIndex == topic.length()-1 ? "unknown" : topic.substring(topicIndex+1);
     }
 }
