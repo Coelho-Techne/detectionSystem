@@ -28,6 +28,8 @@ public interface DeviceAlertSubscriptionRepository extends JpaRepository<DeviceA
     @Modifying
     void deleteByDeviceUuid(UUID deviceId);
 
+    long countByZoneUuid(UUID zoneId);
+
     @Query("""
             select distinct s.device from DeviceAlertSubscription s
             where s.active = true
