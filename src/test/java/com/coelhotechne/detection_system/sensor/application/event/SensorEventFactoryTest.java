@@ -62,15 +62,16 @@ class SensorEventFactoryTest {
                 null,
                 null);
 
-        assertThat(SensorEventFactory.detectionEventId(SENSOR,v1))
-                .isEqualTo(SensorEventFactory.detectionEventId(SENSOR,v1));
+        UUID first =SensorEventFactory.detectionEventId(SENSOR,v1);
+        UUID second =SensorEventFactory.detectionEventId(SENSOR,v1);
+        assertThat(second).isEqualTo(first);
     }
     @Test
     void v1WithoutDetectedAtFallsBackToServerTime(){
         String json = """
                  {"category":"door_open","description":"porta da frente"}
                 """;
-        SensorDetectionEvent event = (SensorDetectionEvent) factory.create(new SensorTopic(SENSOR,"detection"),null);
+        SensorDetectionEvent event = (SensorDetectionEvent) factory.create(new SensorTopic(SENSOR,"detection"),json);
         assertThat(event.detectedAt()).isEqualTo(NOW);
     }
 }
