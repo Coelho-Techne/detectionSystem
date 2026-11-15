@@ -28,10 +28,10 @@ final class TelemetrySpecifications {
                 predicates.add(criteriaBuilder.equal(root.get("metric"),filter.metric()));
             }
             if (filter.from()!= null){
-                predicates.add(criteriaBuilder.equal(root.get("measuredAt"),filter.from()));
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("measuredAt"),filter.from()));
             }
             if (filter.to()!=null){
-                predicates.add(criteriaBuilder.equal(root.get("measuredAt"),filter.to()));
+                predicates.add(criteriaBuilder.lessThan(root.get("measuredAt"),filter.to()));
             }
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
