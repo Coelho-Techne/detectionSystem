@@ -12,13 +12,13 @@ public class TelemetryMapper  {
         Objects.requireNonNull(entity,"Telemetry cannot be null");
         return new TelemetryResponse(
                 entity.getUuid(),
-                entity.getSensor()== null ? null : entity.getSensor().getUuid(),
+                entity.getSensor() == null ? null : entity.getSensor().getUuid(),
                 entity.getZone() == null ? null : entity.getZone().getUuid(),
                 entity.getMetric(),
                 entity.getValue(),
                 entity.getUnit(),
                 entity.getMeasuredAt(),
-                entity.getMeasuredAt(),
+                entity.getReceivedAt(),
                 entity.getSource(),
                 entity.getCreatedBy()
         );
