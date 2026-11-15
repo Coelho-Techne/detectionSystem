@@ -35,15 +35,17 @@ class PowerSupplyTest {
     void criticalAndCharging(){
         PowerSupply powerSupply = battery();
         assertThat(powerSupply.applyReading(new BigDecimal("10"),
-                false,TO,THRESHOLDS)).isEqualTo(PowerSupplyStatus.CRITICAL);
+                false,TO,THRESHOLDS).currentStatus())
+                .isEqualTo(PowerSupplyStatus.CRITICAL);
 
         assertThat(powerSupply.applyReading(new BigDecimal("10"),
-                true,TO.plusSeconds(1),THRESHOLDS)).isEqualTo(
-                        PowerSupplyStatus.CHARGING);
+                true,TO.plusSeconds(1),THRESHOLDS).currentStatus())
+                .isEqualTo(PowerSupplyStatus.CHARGING);
     }
-
+    @Test
     void outOfOrderReadingIsIgnored(){
         PowerSupply powerSupply = battery();
+        powerSupply.applyReading(new BigDecimal("80"),false,TO,THRESHOLDS);
         PowerSupply.PowerOutcome late = powerSupply.applyReading(new BigDecimal("5"),
                 false,TO.minusSeconds(60),THRESHOLDS);
         assertThat(late.persist()).isFalse();
