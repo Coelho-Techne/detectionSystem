@@ -8,6 +8,7 @@ import com.coelhotechne.detection_system.detection.domain.SensorDetection;
 import com.coelhotechne.detection_system.detection.domain.enums.DetectionType;
 import com.coelhotechne.detection_system.detection.event.DetectionRecordedEvent;
 import com.coelhotechne.detection_system.detection.infrastructure.DetectionRepository;
+import com.coelhotechne.detection_system.globalClass.time.DeviceClock;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorNiche;
 import com.coelhotechne.detection_system.sensor.domain.payload.SensorDetectionPayload;
@@ -54,10 +55,11 @@ class DetectionRecorderTest {
         sensorRepository = mock(SensorRepository.class);
         publisher = mock(ApplicationEventPublisher.class);
         metrics=mock(DetectionMetrics.class);
+        camRepository = mock(CamRepository.class);
         recorder = new DetectionRecorder(
                 repository,
                 sensorRepository,
-                mock(CamRepository.class),
+                camRepository,
                 publisher,
                 metrics,
                 Clock.fixed(NOW, ZoneOffset.UTC),
@@ -91,7 +93,7 @@ class DetectionRecorderTest {
 
             verify(metrics).count(DetectionDeviceType.SENSOR,DetectionType.GAS_LEAK,DetectionOutcome.STORED);
             verify(publisher,times(1)).publishEvent(any(DetectionRecordedEvent.class));
-            verifyNoInteractions(publisher,metrics);
+            verifyNoMoreInteractions(publisher,metrics);
         }
         @Test
         void redeliveryReturnsExistingAndCountsDuplicate(){
@@ -163,7 +165,7 @@ class DetectionRecorderTest {
             givenSensor(SensorNiche.GAS);
 
             recorder.recordedFromSensor(event(payloadAt("gas_leak",
-                    NOW.plus(CLOCK_SKEW_TOLERANCE).plusSeconds(1))));
+                    NOW.plus(DeviceClock.MAX_FUTURE_SKEW).plusSeconds(1))));
             assertThat(captureSaved().getDetectedAt()).isEqualTo(NOW);
         }
         @Test
@@ -233,7 +235,7 @@ class DetectionRecorderTest {
             assertThat(saved.getGasType()).isEqualTo(DetectionGasType.UNKNOWN);
         }
         @ParameterizedTest
-        @ValueSource(strings = {"carbon_monoxide", "methane"})
+        @ValueSource(strings = {"carbon_monoxide","methane", "propane"})
         void nonGasSensorNeverCarriesGasType(String gasCode) {
             givenSensor(SensorNiche.SECURITY);
 
