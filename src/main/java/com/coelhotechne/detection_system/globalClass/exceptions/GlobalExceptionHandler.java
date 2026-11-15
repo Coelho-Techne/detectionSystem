@@ -36,7 +36,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException e){
     ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT
             ,"The resource was modified concurrently; reload and try again");
-    pd.setTitle("Current Modification");
+    pd.setTitle("Concurrent Modification");
     return pd;
     }
     @ExceptionHandler(DataIntegrityViolationException.class)
