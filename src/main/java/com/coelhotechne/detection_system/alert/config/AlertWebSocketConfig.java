@@ -9,6 +9,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -17,6 +18,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class AlertWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor authChannelInterceptor;
+    private final StompSessionRegistry stompSessionRegistry;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String[]allowedOrigins;
@@ -30,6 +32,10 @@ public class AlertWebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureMessageBroker(MessageBrokerRegistry registry){
         registry.enableSimpleBroker("/topic");
         registry.setApplicationDestinationPrefixes("/app");
+    }
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration){
+        registration.addDecoratorFactory(stompSessionRegistry);
     }
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration){
