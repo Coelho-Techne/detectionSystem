@@ -6,6 +6,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class StompAlertChannel implements AlertChannel {
@@ -22,7 +23,7 @@ public class StompAlertChannel implements AlertChannel {
     }
 
     @Override
-    public void broadCast(AlertNotification notificaion) {
+    public void broadcast(AlertNotification notificaion) {
     messaging.ifAvailable(m -> m.convertAndSend("/topic/alerts",notificaion));
     }
 
@@ -30,5 +31,9 @@ public class StompAlertChannel implements AlertChannel {
     public void deliver(AlertNotification notification, List<Device> recipients) {
     messaging.ifAvailable(m -> recipients.forEach(device ->
             m.convertAndSend("/topic/devices/"+device.getUuid()+"/alerts",notification)));
+    }
+
+    public void deliverToDevices(AlertNotification notification, List<UUID>deviceIds){
+        messaging.ifAvailable(m->deviceIds.forEach(deviceId ->m.convertAndSend("/topic/devices/"+deviceId+"/alerts",notification)));
     }
 }
