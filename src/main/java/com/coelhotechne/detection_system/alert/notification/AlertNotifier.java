@@ -42,13 +42,14 @@ public class AlertNotifier {
         AlertNotification notification = toNotification(alert,event.change());
         for (AlertChannel channel : channels){
             try {
-                channel.broadCast(notification);
+                channel.broadcast(notification);
             }catch (RuntimeException ex){
                 log.warn("Channel {} failed to broadcast alert {}",channel.name(),alert.getUuid(),ex);
             }
         }
 
-        if (event.change()!= AlertChangedEvent.Change.CREATED){
+        if (event.change()!= AlertChangedEvent.Change.CREATED &&
+                event.change()!= AlertChangedEvent.Change.ESCALATED){
             return;
         }
         List<Device> recipients = subscriptionRepository.findRecipients(
