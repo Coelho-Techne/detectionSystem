@@ -18,7 +18,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 @Component
@@ -63,6 +62,7 @@ public class AlertWriter {
             count("suppressed",decision);
             return;
         }
+        Severity before = repository.findOpenSeverity(decision.dedupKey()).orElse(null);
         int rows = repository.upsertOpen(
                 UUID.randomUUID(),
                 now,
@@ -87,7 +87,17 @@ public class AlertWriter {
             log.info("Alert {} raised: {} {} ({}) ",alert.getUuid(),decision.severity()
                     ,decision.title(),decision.dedupKey());
         }
-        publish(alert,created ? AlertChangedEvent.Change.CREATED: AlertChangedEvent.Change.REPEATED);
+        AlertChangedEvent.Change change;
+        if (created){
+            change = AlertChangedEvent.Change.CREATED;
+        }else if (before!=null && decision.severity().compareTo(before)>0){
+            change = AlertChangedEvent.Change.ESCALATED;
+            log.info("Alert {} escalated: {} -> {} ({})",alert.getUuid(),before,decision.severity(),decision.dedupKey());
+        }else {
+            change = AlertChangedEvent.Change.REPEATED;
+        }
+
+        publish(alert,change);
     }
 
     private void clear(String keyPrefix,Instant now){
