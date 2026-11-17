@@ -67,6 +67,8 @@ public interface AlertRepository extends JpaRepository<Alert, UUID>, JpaSpecific
             @Param("occurredAt")
             Instant occurredAt
     );
+    @Query("select a.severity from Alert a where a.openDedupKey = :key")
+    Optional<Severity> findOpenSeverity(@Param("key") String openDedupKey);
 
     Optional<Alert>findByOpenDedupKey(String openDedupKey);
     @Query(
