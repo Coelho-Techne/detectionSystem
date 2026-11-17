@@ -3,6 +3,8 @@ package com.coelhotechne.detection_system.alert.config;
 import com.coelhotechne.detection_system.device.application.auth.DeviceAuthService;
 import com.coelhotechne.detection_system.security.application.CustomUserDetailsService;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtTokenProvider;
+import com.coelhotechne.detection_system.security.domain.jwt.TokenRevocationPolicy;
+import io.jsonwebtoken.Claims;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -19,8 +21,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Component
 @Log4j2
@@ -28,11 +29,14 @@ import java.util.UUID;
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
     static final String DEVICE_AUTHORITY = "DEVICE_ALERT_RECEIVER";
     private static final String BEARER = "Bearer ";
+    static final String ATTR_TOKEN_ISSUED_AT = "auth.tokenIssuedAt";
+    static final String ATTR_KEY_FINGERPRINT = "auth.keyFingerprint";
 
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService detailsService;
     private final DeviceAuthService deviceAuthService;
+    private final StompSessionRegistry stompSessionRegistry;
 
     @Override
     public Message<?>preSend(Message<?>message, MessageChannel channel){
@@ -45,9 +49,12 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         StompCommand command = accessor.getCommand();
 
         if (command == StompCommand.CONNECT) {
-            accessor.setUser(authenticate(accessor));
+            Authentication authentication = authenticate(accessor);
+            accessor.setUser(authentication);
+            stompSessionRegistry.bind(accessor.getSessionId(),authentication.getName());
         } else if (command == StompCommand.SUBSCRIBE) {
             requireAllowedDestination(accessor);
+            requireStillAuthorized(accessor);
         } else if (command == StompCommand.SEND) {
             throw new MessageDeliveryException("Alert channel is read-only");
         }
@@ -58,14 +65,17 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private Authentication authenticate(StompHeaderAccessor accessor){
         String authorization = accessor.getFirstNativeHeader("Authorization");
         if (authorization!= null&&authorization.startsWith(BEARER)){
-            String email = tokenProvider.parse(authorization.substring(BEARER.length()))
-                    .map(claims -> claims.getSubject())
+            Claims claims = tokenProvider.parse(authorization.substring(BEARER.length()))
                     .orElseThrow(()-> new MessageDeliveryException("Invalid or expired token"));
+            String email = claims.getSubject();
             try {
                 UserDetails userDetails = detailsService.loadUserByUsername(email);
                 if (!userDetails.isEnabled()){
                     throw new MessageDeliveryException("User disabled");
+                }if (TokenRevocationPolicy.isRevoked(claims.getIssuedAt(),userDetails)){
+                    throw new MessageDeliveryException("token revoked");
                 }
+                remember(accessor,ATTR_TOKEN_ISSUED_AT,claims.getIssuedAt());
                 return UsernamePasswordAuthenticationToken.authenticated(userDetails,
                         null,userDetails.getAuthorities());
             }catch (UsernameNotFoundException ex ){
@@ -78,6 +88,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         if (deviceIdHeader!=null&&accessKey!=null){
             UUID deviceId = parseUuid(deviceIdHeader);
             if (deviceId!=null&& deviceAuthService.isValidAccessKey(deviceId,accessKey)){
+                remember(accessor,ATTR_KEY_FINGERPRINT,deviceAuthService.activeKeyFingerprint(deviceId).orElse(null));
                 return UsernamePasswordAuthenticationToken.authenticated(
                         deviceId.toString(),null, List.of(new SimpleGrantedAuthority(DEVICE_AUTHORITY))
                 );
@@ -103,7 +114,38 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             throw new MessageDeliveryException("A device can only subscribe to its own alerts");
         }
     }
+    private void requireStillAuthorized(StompHeaderAccessor accessor){
+        Authentication authentication = (Authentication) accessor.getUser();
+        boolean isDevice = authentication.getAuthorities().stream()
+                .anyMatch(a -> DEVICE_AUTHORITY.equals(a.getAuthority()));
+        Map<String,Object>attributes = accessor.getSessionAttributes();
+        if (isDevice){
+            UUID deviceId = parseUuid(authentication.getName());
+            Optional<String>current = deviceId == null ? Optional.empty(): deviceAuthService.activeKeyFingerprint(deviceId);
+            Object atConnect = attributes == null ? null : attributes.get(ATTR_KEY_FINGERPRINT);
+            if (current.isEmpty() || !(atConnect instanceof String fingerprint) ||
+                    !Objects.equals(fingerprint,current.get())){
+               throw new  MessageDeliveryException("Device credentials revoked");
+            }
+            return;
+        }
+        try {
+            UserDetails userDetails = detailsService.loadUserByUsername(authentication.getName());
+            Object issuedAt = attributes == null ? null : attributes.get(ATTR_TOKEN_ISSUED_AT);
+            if (!userDetails.isEnabled() || (issuedAt instanceof Date iat && TokenRevocationPolicy.isRevoked(iat,userDetails))){
+                throw new MessageDeliveryException("User credentials revoked");
+            }
+        }catch (UsernameNotFoundException ex){
+            throw new MessageDeliveryException("Unknown user");
+        }
+    }
 
+    private static void remember(StompHeaderAccessor accessor,String key, Object value){
+        Map<String, Object>attributes = accessor.getSessionAttributes();
+        if (attributes != null && value!=null){
+            attributes.put(key,value);
+        }
+    }
     private static UUID parseUuid(String value){
         try {
             return UUID.fromString(value);
