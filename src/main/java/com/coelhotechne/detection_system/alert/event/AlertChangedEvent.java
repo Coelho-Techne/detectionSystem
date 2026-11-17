@@ -15,6 +15,7 @@ public record AlertChangedEvent(
     public enum Change{
         CREATED,
         REPEATED,
+        ESCALATED,
         ACKNOWLEDGE,
         RESOLVED,
         CLEARED
