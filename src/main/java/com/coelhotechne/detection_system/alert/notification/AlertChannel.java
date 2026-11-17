@@ -8,7 +8,7 @@ public interface AlertChannel {
 
     String name();
 
-    default void broadCast(AlertNotification notificaion){}
+    default void broadcast(AlertNotification notificaion){}
 
     void deliver(AlertNotification notification, List<Device>recipients);
 }
