@@ -112,7 +112,7 @@ public class AutonomousAgentService {
                 clock.instant()
         ));
         if (!decision.isAllowed()){
-            log.info("Agent {} {} {} for ({}): {}",agent.getAgentName(),
+            log.info("Agent {} {} {} for {} ({}): {}",agent.getAgentName(),
                     decision.outcome(),
                     capability,
                     who,
