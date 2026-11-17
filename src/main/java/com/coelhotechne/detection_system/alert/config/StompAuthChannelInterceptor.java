@@ -3,7 +3,7 @@ package com.coelhotechne.detection_system.alert.config;
 import com.coelhotechne.detection_system.device.application.auth.DeviceAuthService;
 import com.coelhotechne.detection_system.security.application.CustomUserDetailsService;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtTokenProvider;
-import com.coelhotechne.detection_system.security.exceptions.UsernameNotFoundException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.messaging.Message;
