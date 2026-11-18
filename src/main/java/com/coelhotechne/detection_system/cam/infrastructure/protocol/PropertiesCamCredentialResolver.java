@@ -5,6 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Log4j2
@@ -19,7 +21,7 @@ public class PropertiesCamCredentialResolver implements CamCredentialResolver{
     }
 
     @Override
-    public RtspCredentials resolve(String credentialRef) {
+    public RtspCredentials resolve(String credentialRef,String targetHost) {
 
         if (credentialRef==null||credentialRef.isBlank()){
             return null;
@@ -29,8 +31,12 @@ public class PropertiesCamCredentialResolver implements CamCredentialResolver{
             log.warn("No credentials configured for credentialRef={} (cam.credentials.{}.username/password)",
                     credentialRef, credentialRef);
             return null;
+        }if (!entry.allowHost(targetHost)){
+            log.warn("credentialRef={} is not allowed for host {} (cam.credentials.{}.hosts={})",
+                    credentialRef,targetHost,credentialRef,entry.hosts());
+            return null;
         }
-        return new RtspCredentials(entry.username,entry.password.toCharArray());
+        return new RtspCredentials(entry.username,entry.password.toCharArray(),entry.allowBasic());
     }
 
     @ConfigurationProperties(prefix = "cam")
@@ -40,10 +46,18 @@ public class PropertiesCamCredentialResolver implements CamCredentialResolver{
         }
     }
 
-    public record Entry(String username, String password){
+    public record Entry(String username, String password, List<String> hosts,boolean allowBasic){
+        public Entry{
+            hosts = hosts == null ? List.of():hosts.stream().filter(h-> h!=null && !h.isBlank())
+                    .map(h-> h.trim().toLowerCase(Locale.ROOT))
+                    .toList();
+        }
+        boolean allowHost(String host){
+            return host!=null&& hosts.contains(host.trim().toLowerCase(Locale.ROOT));
+        }
         @Override
         public String toString(){
-            return "Entry[username="+username+"password=***********]";
+            return "Entry[username="+username+"password=***********, hosts="+hosts+", allowBasic="+allowBasic+"]";
         }
     }
 }
