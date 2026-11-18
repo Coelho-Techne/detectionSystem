@@ -6,6 +6,7 @@ import com.coelhotechne.detection_system.cam.domain.connectioncam.CamConnectionT
 import com.coelhotechne.detection_system.cam.domain.connectioncam.enums.CamProtocol;
 import com.coelhotechne.detection_system.cam.domain.homologation.CamConnectionTestOutcome;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
 
 @Log4j2
 @Component
+@EnableConfigurationProperties(CamProbeProperties.class)
 public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
@@ -29,9 +31,11 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
     private static final int MAX_BODY_LENGTH = 64 * 1024;
 
     private final CamCredentialResolver credentialResolver;
+    private final CamProbeProperties probeProperties;
 
-    public SocketRtspHandshakeClient(CamCredentialResolver credentialResolver) {
+    public SocketRtspHandshakeClient(CamCredentialResolver credentialResolver,CamProbeProperties probeProperties) {
         this.credentialResolver = credentialResolver;
+        this.probeProperties = probeProperties;
     }
 
     @Override
@@ -46,8 +50,19 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
         } catch (InvalidStreamUriException e) {
             return CamConnectionTestOutcome.failure(e.getMessage());
         }
+        InetAddress address;
+        try {
+            address = InetAddress.getByName(target.host());
+        }catch (UnknownHostException ex){
+            return CamConnectionTestOutcome.failure("Unknown host: "+target.host);
+        }
+        String rejection = probeProperties.rejectionReason(address);
+        if (rejection!=null){
+            return  CamConnectionTestOutcome.failure("Destination not allowed ("+rejection+")");
+        }
+        target = target.withAddress(address);
 
-        try (RtspCredentials credentials = resolveCredentials(connection)) {
+        try (RtspCredentials credentials = resolveCredentials(connection, target.host())) {
             String endpoint = target.host() + ":" + target.port();
 
             try {
@@ -70,11 +85,14 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
                                     + connection.getCredentialRef() + ")");
                 }
 
-                String challenge = challenges.stream()
+                Optional<String> digest = challenges.stream()
                         .filter(c -> c.regionMatches(true, 0, "digest", 0, 6))
-                        .findFirst()
-                        .orElse(challenges.get(0));
-
+                        .findFirst();
+                if (digest.isEmpty() && !credentials.allowBasic()){
+                    return CamConnectionTestOutcome.failure("Camera offers only Basic authentication; enable cam.credentials."
+                    + connection.getCredentialRef()+".allow-basic=true to send it");
+                }
+                String challenge = digest.orElse(challenges.get(0));
                 String authorization = buildAuthorizationHeader(challenge, credentials, target.requestUri(), "DESCRIBE");
                 // Alguns servidores de RTSP fecham a conexão após responder 401 — nova conexão pro retry:
                 RtspResponse second = describe(target, 2, authorization);
@@ -102,9 +120,12 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
     // Validação da URI
     // ---------------------------------------------------------------------
 
-    private record StreamTarget(URI uri, String host, int port) {
+    private record StreamTarget(URI uri, String host, int port,InetAddress address) {
         String requestUri() {
             return uri.toASCIIString();
+        }
+        StreamTarget withAddress(InetAddress resolved){
+            return new StreamTarget(uri,host,port,resolved);
         }
     }
 
@@ -124,12 +145,12 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
         }
     }
 
-    private RtspCredentials resolveCredentials(CamConnectionProfile camConnectionProfile){
+    private RtspCredentials resolveCredentials(CamConnectionProfile camConnectionProfile,String host){
         if (camConnectionProfile.getCredentialRef() == null){
             return null;
         }
         try {
-            return credentialResolver.resolve(camConnectionProfile.getCredentialRef());
+            return credentialResolver.resolve(camConnectionProfile.getCredentialRef(),host);
         } catch (RuntimeException e) {
             log.warn("Credential resolution failed for credentialRef={}", camConnectionProfile.getCredentialRef(), e);
             return null;
@@ -166,7 +187,7 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
         }
 
         int port = uri.getPort() == -1 ? DEFAULT_RTSP_PORT : uri.getPort();
-        return new StreamTarget(uri, host, port);
+        return new StreamTarget(uri, host, port,null);
     }
 
     // ---------------------------------------------------------------------
@@ -175,7 +196,10 @@ public class SocketRtspHandshakeClient implements CamConnectionTestProbe {
 
     private RtspResponse describe(StreamTarget target, int cseq, String authorizationHeader) throws IOException {
         try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(target.host(), target.port()), (int) TIMEOUT.toMillis());
+            InetSocketAddress endpoint = target.address()!=null
+                    ? new InetSocketAddress(target.address(),target.port())
+                    : new InetSocketAddress(target.host(), target.port());
+            socket.connect(endpoint,(int) TIMEOUT.toMillis());
             socket.setSoTimeout((int) TIMEOUT.toMillis());
 
             StringBuilder request = new StringBuilder();
