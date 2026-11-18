@@ -10,10 +10,13 @@ public final class RtspCredentials implements AutoCloseable{
 
     private final String username;
     private  final char [] password;
-    public RtspCredentials(String username,char[]password) {
+    private final boolean allowBasic;
+    public RtspCredentials(String username,char[]password,boolean allowBasic) {
         this.username=Objects.requireNonNull(username, "username");
         this.password=Objects.requireNonNull(password, "password").clone();
+        this.allowBasic = allowBasic;
     }
+    public boolean allowBasic(){return allowBasic;}
     public String username(){
         return username;
     }
