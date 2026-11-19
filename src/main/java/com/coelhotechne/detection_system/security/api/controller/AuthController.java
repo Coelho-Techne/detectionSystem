@@ -7,6 +7,7 @@ import com.coelhotechne.detection_system.security.api.dto.UserResponse;
 import com.coelhotechne.detection_system.security.application.UserService;
 import com.coelhotechne.detection_system.security.domain.enums.Role;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtTokenProvider;
+import com.coelhotechne.detection_system.security.ratelimit.AuthRateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,22 +34,29 @@ public class AuthController {
 
     private static final String ROLE_PREFIX = "ROLE_";
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
     private final UserService service;
+    private final AuthRateLimiter rateLimiter;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager;
 
     @Operation(summary = "Autentica um usuário e devolve um JWT")
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
+        if (rateLimiter.isLoginLocked(normalizedEmail)){
+            throw new ErrorResponseException(HttpStatus.TOO_MANY_REQUESTS);
+        }
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken
-                            .unauthenticated(request.email().trim().toLowerCase(Locale.ROOT), request.password()));
+                            .unauthenticated(normalizedEmail, request.password()));
         } catch (AuthenticationException e) {
+            rateLimiter.recordLoginFailure(normalizedEmail);
             throw new ErrorResponseException(HttpStatus.UNAUTHORIZED, e);
         }
 
+        rateLimiter.recordLoginSuccess(normalizedEmail);
         String email = authentication.getName();
         Role role = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
