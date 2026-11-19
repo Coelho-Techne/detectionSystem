@@ -6,12 +6,14 @@ import com.coelhotechne.detection_system.security.api.dto.UserResponse;
 import com.coelhotechne.detection_system.security.api.dto.UserUpdateRequest;
 import com.coelhotechne.detection_system.security.domain.User;
 import com.coelhotechne.detection_system.security.domain.enums.Role;
+import com.coelhotechne.detection_system.security.event.SessionRevocationEvent;
 import com.coelhotechne.detection_system.security.exceptions.UserConflictException;
 import com.coelhotechne.detection_system.security.exceptions.UserEmailNotFoundException;
 import com.coelhotechne.detection_system.security.exceptions.UserNotFoundException;
 import com.coelhotechne.detection_system.security.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -28,8 +32,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository repository;
+    static final int BCRYPT_MAX_BYTES = 72;
+
+    private final Clock clock;
     private final PasswordEncoder encoder;
+    private final UserRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public Page<UserResponse>listUserPage(Pageable pageable){
@@ -51,7 +59,7 @@ public class UserService {
         }
         User user = new User();
         user.setEmail(email);
-        user.setPasswordHash(encoder.encode(request.password()));
+        user.setPasswordHash(encode(request.password()));
         user.setRole(request.role());
         user.setFullName(request.fullName());
         user.setEnabled(true);
@@ -70,8 +78,10 @@ public class UserService {
         if (losesAdmin && repository.countByRoleAndEnabledTrue(Role.ADMIN)<=1){
             throw new UserConflictException(HttpStatus.CONFLICT,"Cannot remove or disable the last active ADMIN");
         }
+        boolean disabling = user.isEnabled() && Boolean.FALSE.equals(request.enabled());
         if (request.role()!=null)user.setRole(request.role());
         if (request.enabled()!=null)user.setEnabled(request.enabled());
+        if (disabling){revoke(user,"account disabled");}
         if (request.fullName()!=null)user.setFullName(request.fullName());
         return UserResponse.from(repository.saveAndFlush(user));
     }
@@ -85,15 +95,27 @@ public class UserService {
         if (request.currentPassword() == null || !encoder.matches(request.currentPassword(),user.getPasswordHash())){
             throw new UserConflictException(HttpStatus.UNPROCESSABLE_CONTENT,"Current password does not match");
         }
-        user.setPasswordHash(encoder.encode(request.newPassword()));
+        user.setPasswordHash(encode(request.newPassword()));
+        revoke(user,"password changed");
     }
     @Transactional
     public void resetPassword(UUID uuid, PasswordChangeRequest request){
         User user = requireUser(uuid);
-        user.setPasswordHash(encoder.encode(request.newPassword()));
+        user.setPasswordHash(encode(request.newPassword()));
+        revoke(user,"password reset");
         log.info("Password reset for user with e-mail: {}",user.getEmail());
     }
 
+    private String encode(String rawPassword){
+        if (rawPassword!=null && rawPassword.getBytes(StandardCharsets.UTF_8).length>BCRYPT_MAX_BYTES){
+            throw new UserConflictException(HttpStatus.BAD_REQUEST,"Password must be at most "+BCRYPT_MAX_BYTES+" bytes (UTF-8)");
+        }
+        return encoder.encode(rawPassword);
+    }
+    private void revoke(User user,String reason){
+        user.revokeIssuedTokens(clock.instant());
+        eventPublisher.publishEvent(SessionRevocationEvent.of(user.getEmail(),reason));
+    }
     private User requireUser(UUID uuid){
         return repository.findById(uuid)
                 .orElseThrow(()-> new UserNotFoundException(uuid," User ID not found"));
