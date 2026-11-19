@@ -8,6 +8,8 @@ import com.coelhotechne.detection_system.security.config.device.SensorDeviceAuth
 import com.coelhotechne.detection_system.security.domain.enums.Role;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtAuthenticationFilter;
 import com.coelhotechne.detection_system.security.domain.jwt.JwtTokenProvider;
+import com.coelhotechne.detection_system.security.ratelimit.AuthRateLimitFilter;
+import com.coelhotechne.detection_system.security.ratelimit.AuthRateLimiter;
 import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,8 +43,9 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final CamDeviceAuthenticationProvider camDeviceAuthenticationProvider;
     private final SensorDeviceAuthenticationProvider sensorDeviceAuthenticationProvider;
+    private final AuthRateLimiter limiter;
 
-    @Value("${springdoc.api-docs.enabled:true}")
+    @Value("${springdoc.api-docs.enabled:false}")
     private boolean apiDocsEnabled;
 
     @Bean
@@ -95,6 +98,7 @@ public class SecurityConfig {
                 })
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .addFilterBefore(new AuthRateLimitFilter(limiter),UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(camDeviceFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(sensorDeviceFilter, UsernamePasswordAuthenticationFilter.class);
