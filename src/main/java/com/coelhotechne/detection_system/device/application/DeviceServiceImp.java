@@ -1,18 +1,22 @@
 package com.coelhotechne.detection_system.device.application;
 
+import com.coelhotechne.detection_system.autonomousDevice.domain.AutonomousDevice;
 import com.coelhotechne.detection_system.device.api.dto.DeviceCreatedResponse;
 import com.coelhotechne.detection_system.device.api.dto.DeviceMapper;
 import com.coelhotechne.detection_system.device.api.dto.DeviceRequest;
 import com.coelhotechne.detection_system.device.api.dto.DeviceResponse;
 import com.coelhotechne.detection_system.device.api.dto.auth.DeviceKeyGenerator;
 import com.coelhotechne.detection_system.device.domain.Device;
+import com.coelhotechne.detection_system.device.exceptions.DeviceIsAgentException;
 import com.coelhotechne.detection_system.device.exceptions.DeviceNotFoundException;
 import com.coelhotechne.detection_system.device.infrastructure.DeviceAlertSubscriptionRepository;
 import com.coelhotechne.detection_system.device.infrastructure.DeviceRepository;
 
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyHasher;
+import com.coelhotechne.detection_system.security.event.SessionRevocationEvent;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +30,14 @@ import java.util.UUID;
 @Service
 @Log4j2
 public class DeviceServiceImp implements DeviceService{
-    private final DeviceRepository repository;
-    private final DeviceAlertSubscriptionRepository subscriptionRepository;
+
+    private final Clock clock;
     private final DeviceMapper mapper;
+    private final DeviceRepository repository;
     private final DeviceKeyGenerator keyGenerator;
     private final AccessKeyHasher accessKeyHasher;
-    private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
+    private final DeviceAlertSubscriptionRepository subscriptionRepository;
 
     @Override
     public Device requireDevice(UUID deviceId) {
@@ -39,7 +45,13 @@ public class DeviceServiceImp implements DeviceService{
         return repository.findById(deviceId)
                 .orElseThrow(() -> new DeviceNotFoundException(deviceId.toString(),null,"Device not found."));
     }
-
+    private Device requirePlainDevice(UUID deviceId){
+        Device device = requireDevice(deviceId);
+        if (device instanceof AutonomousDevice){
+            throw new DeviceIsAgentException(deviceId);
+        }
+        return device;
+    }
     @Override
     @Transactional(readOnly = true)
     public List<DeviceResponse> findDeviceList() {
@@ -67,18 +79,22 @@ public class DeviceServiceImp implements DeviceService{
     @Override
     @Transactional
     public DeviceResponse updateDevice(UUID uuid, DeviceRequest deviceRequest) {
-
-        Device update=requireDevice(uuid);
+        Device update=requirePlainDevice(uuid);
+        boolean wasActive = Boolean.TRUE.equals(update.getStatus());
         mapper.toEntity(update,deviceRequest);
+        if (wasActive && !Boolean.TRUE.equals(update.getStatus())){
+            eventPublisher.publishEvent(SessionRevocationEvent.of(uuid.toString(),"device disabled"));
+        }
         return mapper.toResponse(repository.saveAndFlush(update));
     }
 
     @Override
     @Transactional
     public void deleteDevice(UUID uuid) {
-        Device deleteDevice=requireDevice(uuid);
+        Device deleteDevice=requirePlainDevice(uuid);
         subscriptionRepository.deleteByDeviceUuid(uuid);
         repository.delete(deleteDevice);
+        eventPublisher.publishEvent(SessionRevocationEvent.of(uuid.toString(),"device deleted"));
         log.info("Device {} deleted",uuid);
     }
 }
