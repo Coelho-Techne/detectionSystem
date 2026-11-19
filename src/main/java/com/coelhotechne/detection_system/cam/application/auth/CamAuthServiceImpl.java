@@ -3,12 +3,14 @@ package com.coelhotechne.detection_system.cam.application.auth;
 import com.coelhotechne.detection_system.cam.api.dto.auth.CamAuthResponse;
 import com.coelhotechne.detection_system.cam.application.auth.enums.CamAuthMessage;
 import com.coelhotechne.detection_system.cam.domain.base.BaseCam;
+import com.coelhotechne.detection_system.cam.domain.homologation.enums.CamHomologationStatus;
 import com.coelhotechne.detection_system.cam.exceptions.CamAuthenticationException;
 import com.coelhotechne.detection_system.cam.exceptions.CamNotFoundException;
 import com.coelhotechne.detection_system.cam.infrastructure.CamRepository;
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyGenerator;
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyHasher;
 import com.coelhotechne.detection_system.globalClass.security.IssuedAccessKeyResponse;
+import com.coelhotechne.detection_system.installation.domain.enums.InstallationStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,9 +38,20 @@ public class CamAuthServiceImpl implements CamAuthService {
         if (maybeCam.isEmpty()|| !hasher.matches(presentedAccessKey,maybeCam.get().getAccessKey())) {
             return new CamAuthResponse(camId, CamAuthMessage.NEGADO, null);
         }
+        if (!isAllowedToOperate(maybeCam.get())){
+            log.warn("Camera {} presented a valid key but is out of operation (homologation rejected or removed)",camId);
+            return new CamAuthResponse(camId, CamAuthMessage.NEGADO, null);
+        }
         Instant now = clock.instant();
         maybeCam.get().recordCommunication(now);
         return new CamAuthResponse(camId, CamAuthMessage.AUTORIZADO, now);
+    }
+    static boolean isAllowedToOperate(BaseCam cam){
+        if (cam.getHomologation().getStatus() == CamHomologationStatus.REJECTED){
+            return false;
+        }
+        return cam.getInstallation() == null
+                || cam.getInstallation().getInstallationStatus() != InstallationStatus.REMOVED;
     }
 
     @Override
