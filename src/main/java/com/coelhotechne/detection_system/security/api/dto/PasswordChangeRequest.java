@@ -9,7 +9,7 @@ import tools.jackson.databind.annotation.JsonNaming;
 public record PasswordChangeRequest(
         String currentPassword,
         @NotBlank
-        @Size(min = 10,max = 128)
+        @Size(min = 10,max = 72)
         String newPassword
 ) {
 }
