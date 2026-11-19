@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
+import java.util.Date;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -35,17 +36,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith(PREFIX)
         && SecurityContextHolder.getContext().getAuthentication() == null) {
                 String token = header.substring(PREFIX.length());
-                tokenProvider.parse(token).ifPresent(claims -> authenticate(claims.getSubject(),request));
+                tokenProvider.parse(token).ifPresent(claims -> authenticate(claims.getSubject(),claims.getIssuedAt(),request));
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void authenticate(String email, HttpServletRequest servletRequest){
+    private void authenticate(String email, Date issuedAt, HttpServletRequest servletRequest){
     try{
     UserDetails userDetails= userDetailsService.loadUserByUsername(email);
     if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()){
         log.debug("Token valid for inactive or blocked account: {}", email);
+        return;
+    }
+    if (TokenRevocationPolicy.isRevoked(issuedAt,userDetails)){
+        log.debug("Token issued before last credential change for {}",email);
         return;
     }
     UsernamePasswordAuthenticationToken authenticationToken =
