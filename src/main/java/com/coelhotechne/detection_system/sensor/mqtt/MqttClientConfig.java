@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.sensor.mqtt;
 
+import com.coelhotechne.detection_system.cluster.config.ClusterProperties;
 import lombok.extern.log4j.Log4j2;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
@@ -16,16 +17,20 @@ import java.util.UUID;
 public class MqttClientConfig {
 
     @Bean(destroyMethod = "")
-    public MqttClient mqttClient(SensorMqttProperties properties)throws Exception{
-        String clientId = properties.uniqueClientIdSuffix() ?
-                properties.clientId() + "-" + UUID.randomUUID().toString().substring(0,8)
-                : properties.clientId();
+    public MqttClient mqttClient(SensorMqttProperties properties, ClusterProperties cluster)throws Exception{
+        String clientId = clientId(properties,cluster);
         MqttClientPersistence persistence = properties.usesMemoryPersistence() ?
                 new MemoryPersistence() :
                 new MqttDefaultFilePersistence(properties.persistenceDir());
         log.info("MQTT client {} for {}({} persistence)",clientId,properties.brokerUrl(),
                 properties.usesMemoryPersistence() ? "memory":properties.persistenceDir());
         return new MqttClient(properties.brokerUrl(),clientId,persistence);
+    }
+    static String clientId(SensorMqttProperties properties, ClusterProperties cluster){
+        if (cluster.isEnabled()){
+            return properties.clientId()+"-"+cluster.nodeId();
+        }
+        return properties.uniqueClientIdSuffix() ? properties.clientId() + "-"+UUID.randomUUID().toString().substring(0,8):properties.clientId();
     }
     @Bean
     public MqttConnectOptions mqttConnectOptions(SensorMqttProperties properties){
