@@ -1,11 +1,14 @@
 package com.coelhotechne.detection_system.sensor.mqtt;
 
+import com.coelhotechne.detection_system.cluster.bus.ClusterBusListener;
+import com.coelhotechne.detection_system.cluster.config.ClusterProperties;
 import jakarta.annotation.PreDestroy;
 
 import com.coelhotechne.detection_system.sensor.application.event.SensorEventHandler;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.log4j.Log4j2;
 import org.eclipse.paho.client.mqttv3.*;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +44,10 @@ public class MqttSensorClient implements MqttCallbackExtended{
     private final ThreadPoolExecutor ingestion;
     private final boolean enabled;
     private final Duration retryDelay;
+    private final ClusterProperties cluster;
+    private final ObjectProvider<ClusterBusListener> clusterListener;
+    private final String[] subscriptionFilters;
+    private final int[] subscriptionQos;
 
     private volatile boolean subscriptionHealthy;
     private volatile long lastMessageAtMillis;
@@ -51,7 +59,9 @@ public class MqttSensorClient implements MqttCallbackExtended{
         SensorEventHandler eventHandler,
         TaskScheduler scheduler,
         MqttIngestionMetrics metrics,
-        SensorMqttProperties properties
+        SensorMqttProperties properties,
+        ClusterProperties cluster,
+        ObjectProvider<ClusterBusListener>clusterListener
     ){
         this.client = client;
         this.options = options;
@@ -60,6 +70,11 @@ public class MqttSensorClient implements MqttCallbackExtended{
         this.metrics = metrics;
         this.enabled = properties.enabled();
         this.retryDelay=properties.reconnectDelay();
+        this.cluster =cluster;
+        this.clusterListener = clusterListener;
+        this.subscriptionFilters = subscriptionFilters(cluster);
+        this.subscriptionQos = new int[subscriptionFilters.length];
+        Arrays.fill(this.subscriptionQos,1);
         AtomicInteger counter = new AtomicInteger();
         this.ingestion = new ThreadPoolExecutor(
                 properties.ingestionThreads(),
@@ -123,9 +138,9 @@ public class MqttSensorClient implements MqttCallbackExtended{
             return;
         }
         try {
-            client.subscribe(EVENT_TOPICS,EVENT_QOS);
+            client.subscribe(subscriptionFilters,subscriptionQos);
             subscriptionHealthy = true;
-            log.info("Subscribed to {}",String.join(", ",EVENT_TOPICS));
+            log.info("Subscribed to {}",String.join(", ",subscriptionFilters));
         }catch (MqttException ex){
             subscriptionHealthy = false;
             log.error("Failed to subscribe; retrying in {}s; error: {}",retryDelay.toSeconds(),ex);
@@ -147,6 +162,20 @@ public class MqttSensorClient implements MqttCallbackExtended{
 
     @Override
     public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
+        if (cluster.isEnabled() && cluster.busTopic().equals(topic)){
+            byte[] raw = mqttMessage.getPayload();
+            ClusterBusListener listener = clusterListener.getIfAvailable();
+            if (listener!=null){
+                ingestion.execute(()->{
+                    try {
+                        listener.onMessage(raw);
+                    }catch (RuntimeException ex){
+                        log.warn("Cluster bus message failed",ex);
+                    }
+                });
+            }
+            return;
+        }
     lastMessageAtMillis = System.currentTimeMillis();
     String payload = new String(mqttMessage.getPayload(),StandardCharsets.UTF_8);
     ingestion.execute(()-> process(topic,payload));
@@ -181,6 +210,17 @@ public class MqttSensorClient implements MqttCallbackExtended{
     }
     public void publishCommand(String topic, String command)throws MqttException{
         publish(topic,command.getBytes(StandardCharsets.UTF_8),COMMAND_QOS);
+    }
+    static String[] subscriptionFilters(ClusterProperties cluster){
+        if (!cluster.isEnabled()){
+            return EVENT_TOPICS.clone();
+        }
+        String[] filters = new String[EVENT_TOPICS.length+1];
+        for (int i = 0; i< EVENT_TOPICS.length;i++){
+            filters[i] = "$share/"+cluster.mqttShareGroup() + "/" + EVENT_TOPICS[i];
+        }
+        filters[EVENT_TOPICS.length] = cluster.busTopic();
+        return filters;
     }
     public boolean isSubscriptionHealthy(){
         return subscriptionHealthy;
