@@ -2,8 +2,10 @@ package com.coelhotechne.detection_system.sensor.application.auth;
 
 import com.coelhotechne.detection_system.globalClass.security.AccessKeyGenerator;
 import com.coelhotechne.detection_system.globalClass.security.IssuedAccessKeyResponse;
+import com.coelhotechne.detection_system.installation.domain.enums.InstallationStatus;
 import com.coelhotechne.detection_system.sensor.application.SensorService;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
+import com.coelhotechne.detection_system.sensor.domain.homologation.enums.SensorHomologationStatus;
 import com.coelhotechne.detection_system.sensor.exceptions.SensorAuthenticationException;
 import com.coelhotechne.detection_system.sensor.infrastructure.SensorRepository;
 import com.coelhotechne.detection_system.sensor.security.SensorAccessKeyHasher;
@@ -32,6 +34,7 @@ public class SensorAuthServiceImpl implements SensorAuthService {
     public Optional<Sensor> authenticate(UUID sensorId, String rawAccessKey) {
         return repository.findById(sensorId)
                 .filter(sensor -> hasher.matches(rawAccessKey, sensor.getAccessKey()))
+                .filter(SensorAuthServiceImpl::isAllowedToOperate)
                 .map(sensor -> {
                     sensor.setLastCommunication(clock.instant());
                     return repository.save(sensor);
@@ -42,12 +45,20 @@ public class SensorAuthServiceImpl implements SensorAuthService {
     @Transactional(readOnly = true)
     public void requireValidAccessKey(UUID sensorId, String rawAccessKey) {
         boolean valid = repository.findById(sensorId)
-                .map(sensor -> hasher.matches(rawAccessKey, sensor.getAccessKey()))
+                .map(sensor -> hasher.matches(rawAccessKey, sensor.getAccessKey()) && isAllowedToOperate(sensor))
                 .orElse(false);
         if (!valid) {
             throw new SensorAuthenticationException(sensorId.toString(),
                     "Access key invalid or Sensor does not exist");
         }
+    }
+
+    public static boolean isAllowedToOperate(Sensor sensor){
+        if (sensor.getHomologation().getStatus() == SensorHomologationStatus.REJECTED){
+            return false;
+        }
+        return sensor.getInstallation() == null
+                || sensor.getInstallation().getInstallationStatus() != InstallationStatus.REMOVED;
     }
 
     @Override
