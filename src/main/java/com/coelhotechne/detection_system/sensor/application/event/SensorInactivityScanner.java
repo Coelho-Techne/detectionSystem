@@ -1,5 +1,6 @@
 package com.coelhotechne.detection_system.sensor.application.event;
 
+import com.coelhotechne.detection_system.cluster.application.ClusterLockService;
 import com.coelhotechne.detection_system.sensor.domain.Sensor;
 import com.coelhotechne.detection_system.sensor.domain.enums.SensorStatus;
 import com.coelhotechne.detection_system.sensor.event.SensorStatusEvent;
@@ -22,26 +23,37 @@ import java.util.UUID;
 @Log4j2
 public class SensorInactivityScanner {
 
-    private final SensorRepository repository;
-    private final ApplicationEventPublisher eventPublisher;
-    private final TransactionTemplate template;
     private final Clock clock;
     private final Duration window;
+    private final SensorRepository repository;
+    private final TransactionTemplate template;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ClusterLockService lockService;
+    private final Duration lockAtLeastFor;
 
 
     public SensorInactivityScanner(SensorRepository repository,
                                    ApplicationEventPublisher eventPublisher,
                                     TransactionTemplate template,
                                    Clock clock,
-                                   @Value("${sensor.inactivity.window:5m}")Duration window){
+                                   @Value("${sensor.inactivity.window:5m}")Duration window,
+                                   ClusterLockService lockService,
+                                   @Value("${sensor.inactivity.scan-interval-ms:30000}") long scanIntervalMs){
     this.repository=repository;
     this.eventPublisher=eventPublisher;
     this.template = template;
     this.clock=clock;
     this.window=window;
+    this.lockService = lockService;
+    this.lockAtLeastFor = Duration.ofMillis(scanIntervalMs*8/10);
     }
     @Scheduled(fixedDelayString = "${sensor.inactivity.scan-interval-ms:30000}")
     public void markStaleSensorDisconnected(){
+    lockService.runExclusively("sensor-inactivity.scan",Duration.ofMillis(5),lockAtLeastFor,this::sweep);
+    }
+
+
+    void sweep(){
         Instant threshold = clock.instant().minus(window);
         List<UUID>stale =repository.findStaleSensors(threshold, SensorStatus.DISCONNECTED).stream()
                 .filter(s -> s.getSensorStatus() != SensorStatus.MAINTENANCE_REQUIRED)
