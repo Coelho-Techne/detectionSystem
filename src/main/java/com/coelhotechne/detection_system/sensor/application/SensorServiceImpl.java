@@ -171,6 +171,7 @@ public class SensorServiceImpl implements SensorService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public void sendCommand(UUID uuid, SensorCommand sensorCommand) {
         Objects.requireNonNull(sensorCommand,"Command cannot be null");
         if (sensorCommand == SensorCommand.SELF_TEST){
