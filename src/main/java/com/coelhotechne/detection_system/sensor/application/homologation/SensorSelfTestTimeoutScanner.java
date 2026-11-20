@@ -1,6 +1,7 @@
 package com.coelhotechne.detection_system.sensor.application.homologation;
 
 
+import com.coelhotechne.detection_system.cluster.application.ClusterLockService;
 import com.coelhotechne.detection_system.sensor.domain.homologation.enums.SensorHomologationStatus;
 import com.coelhotechne.detection_system.sensor.infrastructure.SensorRepository;
 import lombok.extern.log4j.Log4j2;
@@ -9,6 +10,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -18,20 +20,33 @@ import java.util.UUID;
 @Log4j2
 public class SensorSelfTestTimeoutScanner {
 
-    private final SensorRepository repository;
+    private final Clock clock;
     private final Duration timeout;
+    private final SensorRepository repository;
+    private final Duration lockAtLeastFor;
+    private final ClusterLockService lockService;
     private final SensorHomologationService homologationService;
 
     public SensorSelfTestTimeoutScanner(SensorRepository repository,
                                         SensorHomologationService homologationService,
-                                        @Value("${sensor.homologation.self-test-timeout:60s}")Duration timeout){
-        this.repository=repository;
+                                        @Value("${sensor.homologation.self-test-timeout:60s}")Duration timeout,
+                                        ClusterLockService lockService,
+                                        Clock clock,
+                                        @Value("${sensor.homologation.scan-interval-ms:15000}") long scanIntervalMs){
         this.timeout = timeout;
+        this.repository=repository;
         this.homologationService=homologationService;
+        this.lockService = lockService;
+        this.clock = clock;
+        this.lockAtLeastFor = Duration.ofMillis(scanIntervalMs*8/10);
     }
     @Scheduled(fixedDelayString = "${sensor.homologation.scan-interval-ms:15000}")
     public void expireOverdueSelfTests(){
-        Instant now = Instant.now();
+        lockService.runExclusively("sensor-selftest-timeout-scan",Duration.ofMinutes(5),lockAtLeastFor,this::sweep);
+    }
+
+     void sweep(){
+        Instant now = clock.instant();
         List<UUID> overdue =repository
                 .findOverdueSelfTestIds(SensorHomologationStatus.AWAITING_RESPONSE,now.minus(timeout));
         int expired = 0;
