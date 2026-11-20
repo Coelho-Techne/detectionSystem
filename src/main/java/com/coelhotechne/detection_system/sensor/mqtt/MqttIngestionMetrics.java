@@ -49,7 +49,10 @@ public class MqttIngestionMetrics {
     }
 
     static String topicType(String topic){
-        int topicIndex = topic.indexOf('/');
+        if (topic == null){
+            return "unknown";
+        }
+        int topicIndex = topic.lastIndexOf('/');
         return topicIndex < 0 || topicIndex == topic.length()-1 ? "unknown" : topic.substring(topicIndex+1);
     }
 }
