@@ -19,14 +19,16 @@ public class TelemetryThresholdEvaluator {
 
     private final TelemetryThresholdProperties propeties;
     private final ApplicationEventPublisher eventPublisher;
-    private final Map<Key, TelemetryThresholdEvent.Band> bands = new ConcurrentHashMap<>();
+    private final TelemetryThresholdBandStore bandStore;
 
     public TelemetryThresholdEvaluator(
             TelemetryThresholdProperties propeties,
-            ApplicationEventPublisher eventPublisher
+            ApplicationEventPublisher eventPublisher,
+            TelemetryThresholdBandStore bandStore
     ){
         this.propeties=propeties;
         this.eventPublisher=eventPublisher;
+        this.bandStore = bandStore;
     }
 
     public void evaluete(List<Telemetry> readings){
@@ -36,13 +38,12 @@ public class TelemetryThresholdEvaluator {
                 continue;
             }
             UUID sensorId  = reading.getSensor().getUuid();
-            Key key = new Key(sensorId,reading.getMetric());
-            Band previous = bands.get(key);
+            Band previous = bandStore.get(sensorId,reading.getMetric());
             Band current = classify(reading.getValue(),limit,previous);
-            bands.put(key,current);
             if (previous == current){
                 continue;
             }
+            bandStore.put(sensorId,reading.getMetric(),current);
             eventPublisher.publishEvent(new TelemetryThresholdEvent(
                     UUID.randomUUID(),
                     sensorId,
@@ -76,9 +77,5 @@ public class TelemetryThresholdEvaluator {
             }
         }
         return Band.NORMAL;
-    }
-
-    private record Key(UUID sensorId, TelemetryMetric metric){
-
     }
 }
