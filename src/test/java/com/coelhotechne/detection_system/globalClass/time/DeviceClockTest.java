@@ -31,7 +31,6 @@ class DeviceClockTest {
     void futureBeyondSkewUsesReceivedAt(){
         Instant reported = RECEIVED.plus(DeviceClock.MAX_FUTURE_SKEW).plusSeconds(1);
         assertThat(DeviceClock.resolve(reported,RECEIVED)).isEqualTo(RECEIVED);
-        assertThat(DeviceClock.resolve(reported,RECEIVED)).isEqualTo(reported);
     }
     @Test
     void resetRtcUsesReceivedAt(){
