@@ -235,7 +235,7 @@ class DetectionRecorderTest {
             assertThat(saved.getGasType()).isEqualTo(DetectionGasType.UNKNOWN);
         }
         @ParameterizedTest
-        @ValueSource(strings = {"carbon_monoxide","methane", "propane"})
+        @ValueSource(strings = {"methane", "propane"})
         void nonGasSensorNeverCarriesGasType(String gasCode) {
             givenSensor(SensorNiche.SECURITY);
 
@@ -244,6 +244,13 @@ class DetectionRecorderTest {
             SensorDetection saved = captureSaved();
             assertThat(saved.getType()).isEqualTo(DetectionType.UNKNOWN);
             assertThat(saved.getGasType()).isNull();
+        }
+        @Test
+        void carbonMonoxideOnSecuritySensorIsNotAllowed(){
+            givenSensor(SensorNiche.SECURITY);
+            DetectionRecordResult result = recorder.recordedFromSensor(event(payload("carbon_monoxide","carbon_monoxide")));
+            assertThat(result.outcome()).isEqualTo(DetectionOutcome.TYPE_NOT_ALLOWED);
+            verify(repository,never()).save(any());
         }
 
         @Test
