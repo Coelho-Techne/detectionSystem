@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
@@ -14,13 +16,22 @@ import java.time.Instant;
 
 @Log4j2
 @Service
-@AllArgsConstructor
 public class ClusterLockService {
     private final ClusterLeaseRepository repository;
     private final ClusterProperties properties;
     private final TransactionTemplate template;
     private final Clock clock;
 
+    public ClusterLockService(ClusterLeaseRepository repository,
+                              ClusterProperties properties,
+                              PlatformTransactionManager transactionManager,
+                              Clock clock) {
+        this.repository = repository;
+        this.properties = properties;
+        this.clock = clock;
+        this.template = new TransactionTemplate(transactionManager);
+        this.template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     public boolean runExclusively(String name, Duration lockMostFor, Duration lockAtLeastFor,Runnable task){
         if (!properties.isEnabled()){
