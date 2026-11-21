@@ -54,6 +54,15 @@ class AlertWriterTest {
         assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.REPEATED);
     }
     @Test
+    void repeatWithSameOrLowerSeverityStaysRepeated(){
+        AlertDecision d = decision(Severity.MEDIUM);
+        when(repository.findOpenSeverity(d.dedupKey())).thenReturn(Optional.of(Severity.HIGH));
+        givenUpsertReturns(2,d);
+        writer.apply(AlertRuleOutcome.raise(d));
+
+        assertThat(publishChange()).isEqualTo(AlertChangedEvent.Change.REPEATED);
+    }
+    @Test
     void lowSeverityInsideSilenceWindowSuppressed(){
         AlertDecision d = decision(Severity.LOW);
         when(repository.existsByDedupKeyAndClosedAtAfter(eq(d.dedupKey()),any())).thenReturn(true);
