@@ -5,19 +5,16 @@ import com.coelhotechne.detection_system.device.domain.Device;
 import com.coelhotechne.detection_system.sentinelRegistry.domain.enums.DroneControlType;
 import com.coelhotechne.detection_system.sentinelRegistry.domain.enums.DronePurpose;
 import com.coelhotechne.detection_system.sentinelRegistry.domain.enums.DroneType;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import tools.jackson.databind.PropertyNamingStrategies;
-import tools.jackson.databind.annotation.JsonNaming;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.UUID;
 
 
 @Entity
@@ -25,19 +22,23 @@ import java.time.LocalDateTime;
 @Setter
 @DynamicUpdate
 @NoArgsConstructor
-@Table(name = "drone")
+@Table(name = "drone", indexes = @Index(name = "idx_drone_controller", columnList = "controller_node_uuid"))
+@PrimaryKeyJoinColumn(name = "uuid")
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-@EntityListeners(AuditingEntityListener.class)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Drone extends Device {
 
-    @Column(name = "drone_name", length = 30)
+    public static final String DEVICE_TYPE = "DRONE";
+    public static final int NAME_MAX =  60;
+    public static final int SERIAL_MAX = 100;
+
+    @Setter(AccessLevel.NONE)
+    @Column(name = "drone_name", length = NAME_MAX)
     private String droneName;
 
-    @Column(name = "manufacturer", length = 60)
+    @Column(name = "manufacturer", length = NAME_MAX)
     private String manufacturer;
 
-    @Column(name = "model", length = 60)
+    @Column(name = "model", length = NAME_MAX)
     private String model;
 
     @Column(name = "serial_number", unique = true, length = 100)
@@ -86,24 +87,68 @@ public class Drone extends Device {
     private LocalDateTime lastMaintenanceAt;
 
     @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(
-                    name = "status",
-                    column = @Column(name = "power_supply_status", length = 20)
-            ),
-            @AttributeOverride(
-                    name = "type",
-                    column = @Column(name = "power_supply_type", length = 20)
-            ),
-            @AttributeOverride(
-                    name = "percentage",
-                    column = @Column(name = "power_supply_percentage", precision = 5, scale = 2)
-            ),
-            @AttributeOverride(
-                    name = "lastReadingAt",
-                    column = @Column(name = "power_supply_last_reading_at")
-            )
-    })
-    @EqualsAndHashCode.Exclude
     private PowerSupply powerSupply;
+
+    @Setter(AccessLevel.NONE)
+    @Column(name = "controller_node_uuid")
+    private UUID controllerNodeId;
+
+    @Setter(AccessLevel.NONE)
+    @Column(name = "coupled_at")
+    private Instant coupledAt;
+
+
+    public void coupleTo(UUID controllerNodeId, Instant now){
+        Objects.requireNonNull(controllerNodeId,"controllerNodeId is required");
+        if (!controllerNodeId.equals(this.controllerNodeId)){
+            this.controllerNodeId = controllerNodeId;
+            this.coupledAt=Objects.requireNonNull(now,"now is required");
+        }
+    }
+
+    public void decouple(){
+        this.controllerNodeId = null;
+        this.coupledAt=null;
+    }
+
+    public boolean isCoupledTo(UUID nodeId ){
+        return nodeId!=null&& nodeId.equals(controllerNodeId);
+    }
+
+    public boolean isCoupled(){
+        return controllerNodeId!=null;
+    }
+
+    public void assignSerialNumber(String serialNumber){
+        if (this.serialNumber !=null){
+            throw new IllegalStateException("serial_number cannot be changed after registration");
+        }
+        this.serialNumber = normalizeSerial(serialNumber);
+    }
+
+    public void rename(String droneName){
+        String name = Objects.requireNonNull(droneName,"droneName is required").trim();
+
+        if (name.isEmpty()||name.length()>NAME_MAX){
+            throw new IllegalArgumentException("droneName must have 1..."+NAME_MAX+" characters");
+        }
+        this.droneName = name;
+        setDeviceName(name);
+        setDeviceType(DEVICE_TYPE);
+    }
+
+    public boolean isActive(){
+        return Boolean.TRUE.equals(getStatus());
+    }
+
+    public static String normalizeSerial(String serialNumber){
+        String serial = Objects.requireNonNull(serialNumber,"serialNumber is required").trim().toUpperCase(Locale.ROOT);
+
+        if (serial.isEmpty()|| serial.length()>SERIAL_MAX){
+            throw new IllegalArgumentException("serialNumber must have 1.."+SERIAL_MAX+" characters");
+        }
+        return serial;
+    }
+
+
 }
