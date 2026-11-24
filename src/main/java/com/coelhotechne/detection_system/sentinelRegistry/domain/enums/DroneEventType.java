@@ -35,7 +35,7 @@ public enum DroneEventType {
         this.defaultSeverity = defaultSeverity;
     }
 
-    public DroneEventSeverity droneEventSeverity(){
+    public DroneEventSeverity defaultSeverity(){
         return defaultSeverity;
     }
 
