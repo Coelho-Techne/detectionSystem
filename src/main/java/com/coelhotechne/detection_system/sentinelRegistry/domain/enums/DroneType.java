@@ -26,9 +26,6 @@ public enum DroneType {
     UNDERWATER_AUV,
 
     // Configurações especiais
-    FPV,
-    NANO_DRONE,
-    MICRO_DRONE,
     KAMIKAZE,
     ARMED,
     SHOCK,
