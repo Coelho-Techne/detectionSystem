@@ -61,6 +61,10 @@ public class DroneLiveState {
         this.flightState = DroneFlightState.UNKNOWN;
     }
 
+    public void assignController(UUID controllerNodeId) {
+        this.controllerNodeId = controllerNodeId;
+    }
+
     public boolean apply(DroneStatusReport r){
         if (lastRecordedAt!=null && r.getRecordedAt().isBefore(lastRecordedAt)){
             return false;
